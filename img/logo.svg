@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="X4 logo">
+  <rect width="96" height="96" rx="16" fill="#111827"/>
+  <path d="M22 24h14l12 16 12-16h14L55 48l20 24H61L48 56 35 72H21l20-24L22 24Z" fill="#60a5fa"/>
+  <path d="M68 60h8v12h-8V60Zm-8-14h16v8H60v-8Z" fill="#f8fafc"/>
+</svg>
