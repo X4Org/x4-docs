@@ -1,0 +1,17 @@
+{
+  "client_name": "X4 non-production preview authentication",
+  "redirect_uris": [
+    "https://auth.x4app.dev/callback"
+  ],
+  "post_logout_redirect_uris": [
+    "https://auth.x4app.dev/logout-callback"
+  ],
+  "response_types": [
+    "code"
+  ],
+  "grant_types": [
+    "authorization_code"
+  ],
+  "token_endpoint_auth_method": "client_secret_basic",
+  "scope": "openid profile email"
+}

@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="X4–CoreLayer preview authentication integration specification v1.2: full contract, diagrams, implementation status and acceptance gates."><title>X4–CoreLayer Preview Authentication · v1.2</title><style>
+:root { color-scheme: light dark; --background:#ffffff; --foreground:#172c3b; --muted:#536775; --card:#f5f8fb; --secondary:#eaf0f5; --border:#cbd7e0; --primary:#195bb1; --accent:#7343a3; --success:#21734d; --warning:#925b0b; --info:#12697c; --chart-1:#195bb1; --chart-2:#7343a3; --chart-3:#21734d; --chart-4:#925b0b; --chart-5:#12697c; --chart-6:#b34466; --radius:12px; --font-sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; --font-mono:ui-monospace,SFMono-Regular,Consolas,monospace; }
+@media(prefers-color-scheme:dark) { :root { --background:#101923; --foreground:#e1eaf1; --muted:#aabac7; --card:#192633; --secondary:#213343; --border:#405566; --primary:#8abaff; --accent:#d0a3f3; --success:#88d7ac; --warning:#f1c278; --info:#82cede; --chart-1:#8abaff; --chart-2:#d0a3f3; --chart-3:#88d7ac; --chart-4:#f1c278; --chart-5:#82cede; --chart-6:#f49ab6; } }
+* { box-sizing:border-box } html { scroll-behavior:smooth; scroll-padding-top:12px } body { margin:0; color:var(--foreground); font:15px/1.65 var(--font-sans) } main { max-width:1000px; margin-inline:auto; min-width:0 } a { color:var(--primary); text-underline-offset:3px; overflow-wrap:anywhere } a:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline:3px solid var(--accent); outline-offset:3px } .skip { position:absolute; top:-80px } .skip:focus { top:0; background:var(--background) } header { padding-block:24px 8px } .eyebrow { font-size:11px; font-weight:750; letter-spacing:.12em; text-transform:uppercase; color:var(--info) } h1 { font-size:clamp(27px,5vw,42px); line-height:1.12; letter-spacing:-.035em; margin:10px 0 16px; max-width:23ch } h2 { font-size:24px; line-height:1.25; letter-spacing:-.02em; margin:0 0 18px } h3 { font-size:18px; line-height:1.35; margin:28px 0 12px } p { margin:12px 0 } .lede { color:var(--muted); font-size:17px; max-width:68ch } .meta { display:flex; flex-wrap:wrap; gap:8px 20px; color:var(--muted); font-size:12px } .pill { display:inline-block; border:1px solid var(--border); border-radius:999px; padding:3px 9px; font-size:11px; font-weight:700; color:var(--warning) } .cards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:18px 0 } .box, nav, figure, details { padding:16px; border-radius:var(--radius); background:var(--card); border:1px solid var(--border) } .box h3 { margin:5px 0 8px; font-size:17px } .box p { font-size:14px; margin:0 } .box .eyebrow { color:var(--accent) } .notice { border-left:4px solid var(--warning); margin:18px 0 } nav { margin:28px 0 } nav ol { columns:2; column-gap:30px; margin:12px 0 0; padding-left:24px } nav li { break-inside:avoid; padding:3px 0; font-size:13px } nav a { text-decoration:none } nav a:hover { text-decoration:underline } .technical { border-top:1px solid var(--border); padding-top:28px; margin-top:36px; min-width:0 } .section-label { color:var(--info); font:700 11px var(--font-mono); text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px } .back { font-size:12px; display:inline-block; margin-top:14px } code { font: .88em/1.5 var(--font-mono); overflow-wrap:anywhere; background:var(--secondary); border-radius:4px; padding:1px 4px } pre { white-space:pre-wrap; overflow-wrap:anywhere; background:var(--secondary); padding:16px; border-radius:var(--radius); font-size:13px; line-height:1.6 } pre code { padding:0; background:none; font-size:inherit } .table-wrap { overflow-x:auto; margin:18px 0; border:1px solid var(--border); border-radius:var(--radius) } table { width:100%; border-collapse:collapse; font-size:13px; text-align:left; line-height:1.6 } th { background:var(--secondary); font-weight:700 } th,td { padding:12px; vertical-align:top; border-bottom:1px solid var(--border); overflow-wrap:anywhere; min-width:110px } tr:last-child td { border-bottom:0 } tbody tr:nth-child(even) { background:var(--card) } li { margin-bottom:7px } ol,ul { padding-left:24px } figure { margin:20px 0 } figcaption { color:var(--muted); font-size:13px; margin-top:12px } svg { display:block; width:100%; height:auto; font-family:var(--font-sans) } svg .panel { fill:var(--background); stroke:var(--border); stroke-width:1.5 } svg .gateway { fill:var(--secondary); stroke:var(--primary); stroke-width:1.5 } svg text { fill:var(--foreground); font-size:13px } svg .small { font-size:11px; fill:var(--muted) } svg .bold { font-weight:700 } svg .browser { stroke:var(--chart-1); fill:none; stroke-width:2 } svg .server { stroke:var(--chart-2); fill:none; stroke-width:2; stroke-dasharray:6 4 } svg .lane { stroke:var(--border); stroke-dasharray:3 5 } .diagram-scroll { overflow-x:auto } .sequence { min-width:620px } .architecture-svg { min-width:560px } .legend { display:flex; flex-wrap:wrap; gap:8px 20px; font-size:12px; color:var(--muted) } .legend span::before { content:""; display:inline-block; width:24px; border-top:2px solid var(--chart-1); margin-right:7px; vertical-align:middle } .legend .server-key::before { border-top:2px dashed var(--chart-2) } summary { cursor:pointer; font-weight:650 } details { margin:18px 0 } footer { margin:36px 0 20px; padding-top:20px; border-top:1px solid var(--border); color:var(--muted); font-size:12px } @media(max-width:480px) { .cards { grid-template-columns:1fr } nav ol { columns:1 } h2 { font-size:22px } th,td { padding:10px; min-width:100px } .table-wrap { font-size:12px } } @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto } } @media print { :root { color-scheme:light; --foreground:#172c3b; --muted:#536775; --background:#fff; --card:#f5f8fb; --secondary:#eaf0f5; --border:#cbd7e0; --primary:#195bb1; --accent:#7343a3; --warning:#925b0b; --info:#12697c; --chart-1:#195bb1; --chart-2:#7343a3 } body { font-size:10pt } main { max-width:none } .back,.skip { display:none } .technical { margin-top:20px } h2,h3 { break-after:avoid } tr, .box { break-inside:avoid } .table-wrap,.diagram-scroll { overflow:visible } .sequence, .architecture-svg { min-width:0 } th,td { min-width:0; padding:6px } pre { font-size:9pt } a { color:inherit } figure { break-inside:avoid } }
+</style></head><body><a class="skip" href="#contents">Skip to contents</a><main><header><div class="eyebrow">X4–CoreLayer Preview Authentication Integration Specification</div><h1>Choose the login contract.<br>Keep previews independent.</h1><p class="lede">Direct application OIDC or an optional fixed-callback broker for non-production previews. Application-owned sessions and authorization in both contracts.</p><div class="meta"><span>X4-CORELAYER-AUTH-001</span><span>Version 1.2</span><span>27 October 2026</span><span class="pill">Proposal · real-provider acceptance pending</span></div><p><a href="corelayer-preview-auth-integration-v1.md">Authoritative Markdown companion</a> · <a href="#client-json">Client registration JSON</a></p></header>
+<aside class="box notice" aria-label="Deployment status"><strong>Real CoreLayer login is not validated.</strong><p><code>auth.x4app.dev</code> is installed in setup mode; real login is disabled. Mock-tested broker behavior and working private preview routing are architectural evidence, not real-provider acceptance.</p></aside>
+<div class="cards"><article class="box"><div class="eyebrow">01 / Fixed trust boundary</div><h3>One broker upstream policy</h3><p>Each gateway deployment has one issuer, client, scope list and optional audience. A project registry cannot select another client or broaden permissions.</p></article><article class="box"><div class="eyebrow">02 / Per-application work</div><h3>Broker adopters need an adapter</h3><p>Direct OIDC applications keep their existing client and callbacks. Broker adopters integrate a receiving backend. Both enforce their own authorization.</p></article><article class="box"><div class="eyebrow">03 / Implemented evidence</div><h3>Routing + mock-tested handoff</h3><p>Private HTTPS routing is implemented; fixed-port compatibility is source-only. Broker handoff is a mock-tested proof of concept. Reviewers currently need Tailscale access.</p></article><article class="box"><div class="eyebrow">04 / Pending acceptance</div><h3>Real provider + lifecycle</h3><p>Real application integration, automatic auth lifecycle, durable/shared auth state and any downstream API adapter remain work to complete. K12 / portal / BTA are optional examples.</p></article></div>
+<nav id="contents" aria-label="Document contents"><h2>Find your way through the contract</h2><p><a href="#architecture">Visual architecture</a> · <a href="#document-record">Document record</a> · <a href="#client-json">Exact client JSON</a></p><ol style="list-style:none;padding-left:0"><li><a href="#scope">Project-agnostic scope</a></li><li><a href="#section-1">1. Decision and request to CoreLayer</a></li><li><a href="#section-2">2. Architecture and ownership</a></li><li><a href="#section-3">3. Preview URLs and concurrent sandboxes</a></li><li><a href="#section-4">4. OIDC and browser flow requirements</a></li><li><a href="#section-5">5. Existing X4 broker interface</a></li><li><a href="#section-6">6. Lifecycles, expiry, refresh and logout</a></li><li><a href="#section-7">7. Project-specific API adapters: portal/BTA example</a></li><li><a href="#section-8">8. Connectivity and operating requirements</a></li><li><a href="#section-9">9. Implementation and deployment baseline</a></li><li><a href="#section-10">10. Acceptance and rollout gates</a></li><li><a href="#section-11">11. CoreLayer response worksheet</a></li><li><a href="#references">References</a></li></ol></nav><section id="architecture"><div class="section-label">Visual overview</div><h2>Broker option: many previews, one trusted return address.</h2><figure aria-labelledby="architecture-caption"><div class="diagram-scroll" role="region" tabindex="0" aria-label="Architecture diagram, horizontally scrollable on narrow screens"><svg class="architecture-svg" viewBox="0 0 640 430" role="img" aria-labelledby="arch-title arch-desc"><title id="arch-title">Many preview applications, one fixed CoreLayer callback</title><desc id="arch-desc">Each preview has its own backend adapter, generation, and host-only application session. All use one X4 gateway deployment with one upstream issuer, client, and policy. CoreLayer returns only to auth.x4app.dev/callback. The gateway selects the registered preview using its trusted transaction and sends a one-use ticket; the preview redeems it server-side. Hostname routing alone does not register authentication.</desc>
+<rect class="panel" x="10" y="12" width="195" height="82" rx="10"/><rect class="panel" x="223" y="12" width="194" height="82" rx="10"/><rect class="panel" x="435" y="12" width="195" height="82" rx="10"/>
+<text class="bold" x="107" y="38" text-anchor="middle">Preview A</text><text class="small" x="107" y="59" text-anchor="middle">Backend session adapter</text><text class="small" x="107" y="77" text-anchor="middle">Own generation + cookie</text>
+<text class="bold" x="320" y="38" text-anchor="middle">Preview B</text><text class="small" x="320" y="59" text-anchor="middle">Backend session adapter</text><text class="small" x="320" y="77" text-anchor="middle">Own generation + cookie</text>
+<text class="bold" x="533" y="38" text-anchor="middle">Preview N</text><text class="small" x="533" y="59" text-anchor="middle">Backend session adapter</text><text class="small" x="533" y="77" text-anchor="middle">Own generation + cookie</text>
+<path class="server" d="M107 94 V115 H320 M533 94 V115 H320 M320 94 V155"/><text class="small" x="320" y="140" text-anchor="middle">Authenticated start / ticket redemption</text>
+<rect class="gateway" x="65" y="156" width="510" height="98" rx="10"/><text class="bold" x="320" y="181" text-anchor="middle">X4 broker · auth.x4app.dev</text><text x="320" y="204" text-anchor="middle">ONE issuer / client / policy per deployment</text><text class="small" x="320" y="225" text-anchor="middle">Trusted transaction → active preview generation</text><text class="small" x="320" y="243" text-anchor="middle">Upstream tokens stay server-side</text>
+<path class="browser" d="M170 254 V313"/><path class="browser" d="m165 304 5 9 5-9"/><text class="small" x="155" y="277" text-anchor="end">Browser sign-in</text><path class="browser" d="M470 313 V254"/><path class="browser" d="m465 263 5-9 5 9"/><text class="small" x="485" y="277">Fixed callback</text><text class="small" x="485" y="293">code + state</text>
+<rect class="panel" x="65" y="314" width="510" height="76" rx="10"/><text class="bold" x="320" y="340" text-anchor="middle">CoreLayer OIDC</text><text x="320" y="363" text-anchor="middle">https://auth.x4app.dev/callback</text><text class="small" x="320" y="412" text-anchor="middle">No preview wildcard or per-preview OAuth client required</text></svg></div><figcaption id="architecture-caption">Broker architecture overview (scroll horizontally on narrow screens). Every adopting application needs a receiving session adapter. The browser handoff goes to the registered preview’s <code>/auth/callback</code>; the full protocol and validation requirements follow in sections 2 and 4. On a narrow screen, the text below provides the same architecture.</figcaption></figure><p>In the broker contract, Preview A, B and N are separate receiving applications. Each authenticates server-side to the same broker. CoreLayer returns to the fixed gateway callback; the broker then selects the active registered preview from its trusted transaction. A one-use ticket is redeemed by that preview’s backend. No upstream tokens travel through the browser handoff.</p><div class="cards"><article class="box"><h3>CoreLayer owns identity</h3><p>Client provisioning, issuer and claims policy, consent, permitted scopes and audiences, upstream logout and test identities.</p></article><article class="box"><h3>X4 owns the broker</h3><p>Fixed gateway, secret custody, validated transactions, preview registration and revocation, handoff and operations.</p></article><article class="box"><h3>Broker adopters own sessions</h3><p>Receiving adapters, identity-to-permission mapping, CSRF checks, expiry and sign-out; optional application API integration.</p></article><article class="box"><h3>Acceptance is joint</h3><p>Agree the contract, run a real-provider pilot, prove isolation and lifecycle, test session operations, then approve shared use. API acceptance applies where needed.</p></article></div></section><section class="technical" id="document-record"><h2>Document record &amp; interpretation</h2>
+<div class="table-wrap" role="region" aria-label="Contract table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Document</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ID</td>
+<td>X4-CORELAYER-AUTH-001</td>
+</tr>
+<tr>
+<td>Version</td>
+<td>1.2</td>
+</tr>
+<tr>
+<td>Date</td>
+<td>2026-10-27</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>Integration proposal ready for CoreLayer and consuming application teams to review; real-provider acceptance pending</td>
+</tr>
+<tr>
+<td>Owners</td>
+<td>X4: gateway, preview routing and lifecycle. CoreLayer: identity client and downstream authorization contract. Each application team: application session and any API integration.</td>
+</tr>
+<tr>
+<td>Scope</td>
+<td>Project-agnostic authentication for non-production X4 previews using CoreLayer. K12 Prevent is an illustrative consumer.</td>
+</tr>
+</tbody></table></div>
+<p>This document is the integration contract proposed by X4. It supersedes earlier design discussion for this integration. It does not claim CoreLayer approval or production readiness. <strong>MUST</strong>, <strong>SHOULD</strong>, and <strong>MAY</strong> describe the target integration; the implementation-status table identifies what currently exists. Unknown CoreLayer-specific values are explicit inputs to obtain, not assumptions about its deployed Hydra configuration.</p>
+<a class="back" href="#contents">↑ Contents</a></section><section class="technical" id="scope"><div class="section-label">Full contract · Scope</div><h2>Project-agnostic scope</h2>
+<p>X4 provides preview routing independently of application authentication. Applications may keep their existing direct OIDC integration or adopt the fixed-callback broker/session handoff. Neither contract contains K12-specific route selection. SDAC, Handbook, TAP, K12 or a new project can choose the contract that fits its authentication and API requirements.</p>
+<div class="table-wrap" role="region" aria-label="Contract table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Direct application OIDC</th>
+<th>X4 broker/session handoff</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>OAuth client and callback owner</td>
+<td>Application&#39;s existing client; exact callbacks on its preview origin</td>
+<td>Dedicated confidential broker client; fixed <code>auth.x4app.dev</code> callbacks</td>
+</tr>
+<tr>
+<td>Application integration</td>
+<td>Existing OIDC/PKCE and API-token flow</td>
+<td>Receiving backend/BFF adapter and application-session mapping</td>
+</tr>
+<tr>
+<td>Stable preview addresses</td>
+<td>Explicit worker HTTPS ports support existing registered URLs</td>
+<td>Per-workspace HTTPS domains support separate cookie hostnames and concurrent previews</td>
+</tr>
+<tr>
+<td>Portal/BTA access</td>
+<td>Existing application exchange and permitted bearer-token contract</td>
+<td>Additional server-side API adapter and CoreLayer authorization agreement required</td>
+</tr>
+</tbody></table></div>
+<p>Sections 1–2 describe the broker architecture alongside the direct option; the broker protocol requirements in sections 4–6 apply to applications adopting that broker. Choosing direct OIDC does not require its receiving adapter or broker registration. Routing, application access control and real-provider acceptance remain necessary for both contracts. A broker adopter without a backend session layer may need a backend/BFF or another explicitly designed receiving adapter.</p>
+<p>K12 is an example consumer, not a required dependency or a privileged project. Portal exchange and BTA are example downstream integrations for that consumer; an application needing only identity does not need them. Every application still needs its own compatibility and permission checks. Project-agnostic does not imply that all projects may share the same upstream client, scopes, tenant access or API permissions: the broker deployment currently supports one trusted upstream client/policy, as described in section 2.</p>
+<a class="back" href="#contents">↑ Contents</a></section><section class="technical" id="section-1"><div class="section-label">Full contract · Section 1</div><h2>1. Decision and request to CoreLayer</h2>
+<p>For applications adopting session handoff, X4 provides a central authentication broker at <code>https://auth.x4app.dev</code>. The broker owns one dedicated confidential OIDC client and completes authorization-code exchange server-side. Individual previews receive an application-session handoff after authentication. They do not each become a CoreLayer OAuth client.</p>
+<p>CoreLayer is asked to provision this non-production client with two exact, fixed registrations:</p>
+<div class="table-wrap" role="region" aria-label="Contract table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Client setting</th>
+<th>Required value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>redirect_uris</code></td>
+<td><code>[&quot;https://auth.x4app.dev/callback&quot;]</code></td>
+</tr>
+<tr>
+<td><code>post_logout_redirect_uris</code></td>
+<td><code>[&quot;https://auth.x4app.dev/logout-callback&quot;]</code></td>
+</tr>
+<tr>
+<td><code>response_types</code></td>
+<td><code>[&quot;code&quot;]</code></td>
+</tr>
+<tr>
+<td><code>grant_types</code></td>
+<td><code>[&quot;authorization_code&quot;]</code> for the initial integration</td>
+</tr>
+<tr>
+<td><code>token_endpoint_auth_method</code></td>
+<td><code>client_secret_basic</code>, supported by the current X4 adapter</td>
+</tr>
+<tr>
+<td>PKCE</td>
+<td>Support <code>S256</code>; X4 sends a new verifier/challenge for every authorization request</td>
+</tr>
+<tr>
+<td>Authorization response mode</td>
+<td>Query response to <code>GET /callback</code>; the current gateway has no <code>form_post</code> callback handler</td>
+</tr>
+<tr>
+<td>Scope</td>
+<td><code>openid</code> required; <code>profile email</code> requested by the current example, subject to CoreLayer policy</td>
+</tr>
+<tr>
+<td>Audience and API permissions</td>
+<td>For each application requiring API access, CoreLayer to specify the supported request parameter, audience values, scopes and client policy; portal/BTA is one example</td>
+</tr>
+</tbody></table></div>
+<p>The <a href="corelayer-preview-client.example.json">machine-readable client registration example</a> contains no secret or guessed issuer/audience. CoreLayer should supply a client ID and deliver its secret through an approved secret channel. No production client should be modified to allow arbitrary previews.</p>
+<p>CoreLayer does <strong>not</strong> need a preview-hostname wildcard, a list of preview ports, or a change to OAuth redirect matching for this design. Its ordinary callback contains the protocol response parameters, for example <code>/callback?code=…&amp;state=…</code>; these response parameters do not require registering a separate callback for every transaction. X4 MUST NOT add a preview-dependent <code>return_to</code> query to the registered <code>redirect_uri</code>.</p>
+<p>This conclusion covers broker OIDC callback routing. Whether the dedicated client can use CoreLayer&#39;s portal exchange and BTA is a separate contract to confirm in section 7. Client provisioning alone does not establish that compatibility.</p>
+<h3>Direct application OIDC: K12 Prevent</h3>
+<p>The <a href="https://github.com/X4Org/x4/pull/121">K12 Prevent registry in PR #121</a> uses the BTA product (<code>apps/k12-prevent</code> and BTA-POC), independently of the Mastra <code>k12</code> profile. It retains the application&#39;s <code>eduforge-shell</code> client, browser PKCE and portal token exchange. Its frontend and BTA API publish at the worker&#39;s pinned HTTPS ports <code>13100</code> and <code>15000</code>; the worker-local bundle supplies their exact URLs before Vite starts.</p>
+<p>For this contract, CoreLayer MUST register the exact frontend-origin <code>/callback</code> and <code>/logout-callback</code> URLs and permit the browser endpoints, origins and CORS behavior required by the existing OIDC/token-exchange flow. The existing BTA issuer, audience, scope/tenant and <code>SHELL_ALLOWED_AZP</code> authorization requirements still apply. X4 does not grant those permissions by publishing a route. Any <code>offline_access</code>, refresh or logout behavior remains the application&#39;s existing contract to confirm with CoreLayer.</p>
+<p>Direct sign-in bypasses the broker. Its callbacks do not become <code>auth.x4app.dev</code> callbacks, and it does not gain the broker&#39;s one-callback property. Passing a broker authorization code, identity or session into the application&#39;s current OIDC library does not bridge the contracts. Real K12 Prevent/CoreLayer/BTA sign-in remains unverified by this source compatibility change.</p>
+<a class="back" href="#contents">↑ Contents</a></section><section class="technical" id="section-2"><div class="section-label">Full contract · Section 2</div><h2>2. Architecture and ownership</h2>
+<p>The following architecture and broker ownership apply when an application adopts session handoff. Direct OIDC retains the application&#39;s existing client, session/token handling and authorization responsibilities.</p>
+<figure><div class="legend"><span>Browser navigation / redirect</span><span class="server-key">Server call / processing</span></div><div class="diagram-scroll" tabindex="0" role="region" aria-label="Login swimlane, horizontally scrollable on narrow screens"><svg class="sequence" viewBox="0 0 650 720" role="img" aria-labelledby="seq-title seq-desc"><title id="seq-title">Login from preview to CoreLayer and back</title><desc id="seq-desc">Eleven steps separate browser navigation from authenticated server calls. The preview prepares a verifier, the broker performs OIDC with a fixed callback, and the preview redeems a one-use ticket to establish its own session. The full text sequence and all validation requirements are in sections 2 and 4.</desc><text class="bold" x="40" y="32" text-anchor="middle">Browser</text><path class="lane" d="M40 45 V700"/><text class="bold" x="220" y="32" text-anchor="middle">Preview backend</text><path class="lane" d="M220 45 V700"/><text class="bold" x="420" y="32" text-anchor="middle">X4 broker</text><path class="lane" d="M420 45 V700"/><text class="bold" x="600" y="32" text-anchor="middle">CoreLayer</text><path class="lane" d="M600 45 V700"/><rect x="12" y="57" width="625" height="25" rx="5" fill="var(--card)"/><text x="22" y="74">01  Create local transaction + browser binding + handoff verifier</text><path class="browser" d="M40 95 H220 m-8 -5 8 5 -8 5"/><rect x="12" y="115" width="625" height="25" rx="5" fill="var(--card)"/><text x="22" y="132">02  POST /login/start · preview credential + challenge</text><path class="server" d="M220 153 H420 m-8 -5 8 5 -8 5"/><rect x="12" y="173" width="625" height="25" rx="5" fill="var(--card)"/><text x="22" y="190">03  Browser follows /login → authorization + PKCE</text><path class="browser" d="M40 211 H600 m-8 -5 8 5 -8 5"/><rect x="12" y="231" width="625" height="25" rx="5" fill="var(--card)"/><text x="22" y="248">04  Sign in / consent → fixed /callback · code + state</text><path class="browser" d="M600 269 H420 m8 -5 -8 5 8 5"/><rect x="12" y="289" width="625" height="25" rx="5" fill="var(--card)"/><text x="22" y="306">05  Exchange code · client secret + original PKCE verifier</text><path class="server" d="M420 327 H600 m-8 -5 8 5 -8 5"/><rect x="12" y="347" width="625" height="25" rx="5" fill="var(--card)"/><text x="22" y="364">06  Validate ID token, binding, expiry + active generation</text><path class="server" d="M420 379 h35 v15 h-35"/><rect x="12" y="405" width="625" height="25" rx="5" fill="var(--card)"/><text x="22" y="422">07  Redirect → preview /auth/callback · ticket + local state</text><path class="browser" d="M420 443 H40 m8 -5 -8 5 8 5"/><rect x="12" y="463" width="625" height="25" rx="5" fill="var(--card)"/><text x="22" y="480">08  Present ticket; preview validates local browser transaction</text><path class="browser" d="M40 501 H220 m-8 -5 8 5 -8 5"/><rect x="12" y="521" width="625" height="25" rx="5" fill="var(--card)"/><text x="22" y="538">09  POST /handoff/redeem · credential + verifier</text><path class="server" d="M220 559 H420 m-8 -5 8 5 -8 5"/><rect x="12" y="579" width="625" height="25" rx="5" fill="var(--card)"/><text x="22" y="596">10  Identity + opaque broker session reference</text><path class="server" d="M420 617 H220 m8 -5 -8 5 8 5"/><rect x="12" y="637" width="625" height="25" rx="5" fill="var(--card)"/><text x="22" y="654">11  Rotate app session · host-only cookie · clean URL</text><path class="browser" d="M220 675 H40 m8 -5 -8 5 8 5"/></svg></div><figcaption>Read top to bottom. Dashed lines are server-side calls or processing; solid lines are browser navigation. This is an overview, not a replacement for section 4’s binding, token validation and fail-closed requirements. Optional downstream API operations are planned separately (section 7).</figcaption></figure><details><summary>Original contract sequence (text source)</summary><pre><code>sequenceDiagram
+    actor Reviewer
+    participant App as Application preview backend / BFF
+    participant Auth as auth.x4app.dev
+    participant CL as CoreLayer OIDC / portal
+    participant API as Project API (e.g. BTA)
+    Reviewer-&gt;&gt;App: Open the preview link from a PR
+    App-&gt;&gt;App: Create local browser transaction and handoff verifier
+    App-&gt;&gt;Auth: Authenticated POST /login/start
+    Auth--&gt;&gt;Reviewer: Navigate via /login to CoreLayer authorization
+    Reviewer-&gt;&gt;CL: Sign in / consent
+    CL--&gt;&gt;Auth: Browser navigation to fixed /callback with code + state
+    Auth-&gt;&gt;CL: Code exchange, fixed redirect_uri, PKCE verifier
+    Auth-&gt;&gt;Auth: Validate ID token and select registered preview
+    Auth--&gt;&gt;Reviewer: Redirect to that preview /auth/callback with one-use ticket
+    Reviewer-&gt;&gt;App: Present ticket and local transaction reference
+    App-&gt;&gt;Auth: Authenticated POST /handoff/redeem + handoff verifier
+    Auth--&gt;&gt;App: Identity and opaque broker session reference
+    App--&gt;&gt;Reviewer: Host-only application session cookie, then clean URL
+    Note over App,API: Optional project API integration below requires its own agreed contract
+    App-&gt;&gt;Auth: Authorized server-side operation for the active preview session
+    Auth-&gt;&gt;CL: Portal/token exchange if CoreLayer requires it
+    Auth-&gt;&gt;API: Allowlisted API operation using the required credential
+    Auth--&gt;&gt;App: Authorized application result
+</code></pre></details>
+
+<p>The optional API operations at the end are the preferred target for applications needing downstream API access and are <strong>not implemented</strong> by the proof of concept. Section 7 defines the decision gate before each application&#39;s API wire contract can be finalized. The handoff protocol is an X4 application protocol, not an OIDC standard or a new CoreLayer endpoint.</p>
+<p>The current standalone gateway has one issuer, client, scope list and optional audience per deployment. A project registry cannot select different upstream clients or broaden permissions. If projects require different CoreLayer policies, X4 must design explicit trusted client/policy separation before supporting them through the same deployment.</p>
+<div class="table-wrap" role="region" aria-label="Contract table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Owner</th>
+<th>Responsibilities</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CoreLayer</td>
+<td>Dedicated preview client; issuer/discovery/JWKS; authentication and consent; claims and subject policy; permitted audiences/scopes; portal exchange/BTA credential rules; upstream logout and revocation policy; test identities.</td>
+</tr>
+<tr>
+<td>X4</td>
+<td>Fixed HTTPS gateway; OIDC client secret custody; transaction binding and token validation; preview registration and revocation; handoff/session service; domain routing; operational controls and future server-side API adapter.</td>
+</tr>
+<tr>
+<td>Each application team adopting the broker</td>
+<td>Integrate the backend session adapter; map identity into its authorization model; enforce CSRF on mutations; preserve permitted local return paths; call its agreed server-side API adapter if needed; handle session expiry and sign-out.</td>
+</tr>
+<tr>
+<td>Joint acceptance</td>
+<td>Test a consuming application and CoreLayer together, including concurrent previews, expiry, logout and replacement; test successful and denied downstream API calls where that application requires them.</td>
+</tr>
+</tbody></table></div>
+<h3>Terms that must remain distinct</h3>
+<div class="table-wrap" role="region" aria-label="Contract table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Workspace</td>
+<td>One X4 checkout and its lifecycle state. X4 currently tracks one active sandbox/profile per workspace.</td>
+</tr>
+<tr>
+<td>Sandbox digest</td>
+<td>Stable 24-hex-character digest of the workspace ID, used in DNS names. It is a namespace, not a credential. Reused workspace identities can reuse DNS names.</td>
+</tr>
+<tr>
+<td>Route publication generation</td>
+<td>UUID identifying one ingress publication revision; protects route replacement and stale cleanup.</td>
+</tr>
+<tr>
+<td>Auth preview ID and generation</td>
+<td>Separate broker registration identity and unpredictable lifetime generation. Replacement must invalidate the old auth generation, even when its hostname is reused.</td>
+</tr>
+<tr>
+<td>OAuth <code>state</code></td>
+<td>Unpredictable, single-use reference to a gateway-owned authorization transaction. It is not a preview URL.</td>
+</tr>
+<tr>
+<td>Local return state</td>
+<td>Preview-owned opaque browser transaction reference, distinct from OAuth <code>state</code>.</td>
+</tr>
+<tr>
+<td>Handoff ticket</td>
+<td>Short-lived, single-use X4 credential redeemable by the intended preview backend with its handoff verifier and preview credential. It is not a CoreLayer authorization code or access token.</td>
+</tr>
+<tr>
+<td>Broker session</td>
+<td>Gateway-owned session bound to one auth preview generation and identity. The browser receives a separate application session cookie.</td>
+</tr>
+</tbody></table></div>
+<a class="back" href="#contents">↑ Contents</a></section><section class="technical" id="section-3"><div class="section-label">Full contract · Section 3</div><h2>3. Preview URLs and concurrent sandboxes</h2>
+<p>The service registry can declare:</p>
+<pre><code class="language-yaml">preview:
+  mode: origin
+  hostname: &quot;{service}-{profile}-{sandbox}.{domain}&quot;
+</code></pre>
+<p>The execution worker supplies <code>{domain}</code>, currently <code>preview.x4app.dev</code>. Different workspace IDs produce different sandbox digests. A second preview of the same project uses the same registry with a different digest. Backend and other service origins use that same workspace namespace; <code>{{preview.backend.origin}}</code> resolves within the current workspace.</p>
+<p>X4&#39;s ingress routes the exact registered hostname to the correct worker service. Wildcard DNS/TLS supports hostname creation; it does not grant authentication or authorization. For broker adopters, CoreLayer redirects to <code>auth.x4app.dev</code>. The gateway subsequently selects the originating preview from its trusted transaction and active registration.</p>
+<p>Only browser-facing applications that integrate the receiving auth adapter should be registered with the auth broker. Giving a frontend, backend, Mastra or admin service a custom hostname does not itself protect it. Each exposed application MUST enforce its own required access control. The current registry has no implemented <code>auth</code> configuration field or automatic auth-registration hooks.</p>
+<h3>Fixed worker ports and mixed profiles</h3>
+<p>An explicit <code>preview: { mode: origin, port: 13100 }</code> is authoritative even on a worker configured for domain publishing. On a domain-configured execution host it selects <code>https://&lt;worker&gt;.ts.net:13100</code>, skips central domain registration for that service and fails if the port is already occupied. Do not combine <code>preview.hostname</code> and <code>preview.port</code> on one service. Unpinned HTTP services retain generated workspace domains, and a mixed profile can contain both kinds of service.</p>
+<p>This preserves PR #121&#39;s existing env-bundle URLs without changing its registry. Its fixed frontend/API pair permits one such stack per worker unless the ports, bundle URLs and CoreLayer registrations are changed together. Separate ports on the same worker hostname do not isolate cookies. The broker rejects registrations sharing a hostname; use distinct generated domains for concurrent broker previews and review the application&#39;s cookie/token behavior in direct mode.</p>
+<p><code>{{preview.&lt;service&gt;.origin}}</code> references follow the selected service address, including a pinned worker origin when available. Generated domains remain the default for unpinned browser services; choosing fixed ports is an explicit compatibility choice.</p>
+<p>Reviewers currently require authorized Tailscale access to the gateway, preview ingress and pinned worker HTTPS ports. These are private services despite their public DNS names. Supporting reviewers outside the tailnet would be a separate network/access deployment decision.</p>
+<a class="back" href="#contents">↑ Contents</a></section><section class="technical" id="section-4"><div class="section-label">Full contract · Section 4</div><h2>4. OIDC and browser flow requirements</h2>
+<p>These requirements describe broker adoption. Direct application OIDC follows the application/CoreLayer contract in section 1 and does not call the handoff endpoints.</p>
+<ol>
+<li>The application begins at its own preview URL. It creates a random local transaction, browser-binding cookie and separate handoff verifier. A permitted deep-link return path SHOULD be stored locally as a validated same-origin relative path. The example returns to <code>/</code>; deep-link preservation is application integration work.</li>
+<li>Its backend authenticates to <code>POST /login/start</code>, using its current preview ID/generation, opaque local return state and SHA-256 handoff challenge. The global registration credential MUST NOT be available to the preview.</li>
+<li>The browser visits the returned opaque gateway login URL. The gateway creates independent OAuth <code>state</code>, nonce, PKCE verifier and gateway browser binding for this transaction. Multiple tabs/previews MUST use separate records and cookies.</li>
+<li>The gateway requests authorization using <code>response_type=code</code>, the exact fixed <code>redirect_uri</code>, agreed scopes, PKCE <code>S256</code>, state and nonce. Audience parameters MUST follow CoreLayer&#39;s documented contract.</li>
+<li>CoreLayer returns the browser to the fixed gateway <code>/callback</code>. The gateway verifies the browser binding, state, transaction expiry and current preview generation; it exchanges the code as the same client with the original fixed <code>redirect_uri</code> and verifier.</li>
+<li>The gateway MUST validate the ID-token signature, issuer, client audience, expiry and nonce using the issuer&#39;s trusted discovery/JWKS. ID tokens are for the gateway client and MUST NOT be accepted as ID tokens issued to an application&#39;s previous client. Validation must still hold if asynchronous provider work finishes after a transaction or preview lease expires.</li>
+<li>The gateway redirects to the registered origin&#39;s fixed <code>/auth/callback</code> with an opaque ticket and local transaction reference. It MUST NOT accept a browser-supplied external destination. Ticket expiry, preview generation and browser/verifier binding MUST be checked before establishing a session.</li>
+<li>The preview validates its own browser transaction, then redeems the ticket server-side with its limited credential and handoff verifier. Redemption MUST atomically consume the ticket. No CoreLayer access token, refresh token or client secret is returned through this browser redirect.</li>
+<li>The preview rotates its local session identifier, sets its own cookie and redirects to a clean application URL. It MUST NOT continue displaying the ticket in a shareable URL. Replayed, cross-preview, expired or stale-generation callbacks MUST fail closed.</li>
+</ol>
+<h3>Cookies, CSRF and token handling</h3>
+<ul>
+<li>Gateway and preview session/binding cookies MUST be host-only, <code>HttpOnly</code>, <code>Secure</code>, and use <code>Path=/</code> with an HTTPS <code>__Host-</code> name. A shared <code>Domain=.x4app.dev</code> session cookie is prohibited. Separate ports alone do not isolate cookies.</li>
+<li>Preview subdomains beneath <code>x4app.dev</code> can be <strong>same-site</strong> despite being different origins. <code>SameSite=Lax</code> is not protection against a hostile sibling preview. State-changing application requests MUST use exact-origin CSRF checks and/or an appropriately bound CSRF token. Non-production origins MUST NOT be implicitly trusted by production APIs.</li>
+<li>Callback/handoff responses MUST use <code>Cache-Control: no-store</code> and a referrer policy that prevents leaking response parameters. Logs/traces/metrics MUST exclude callback query strings, tickets, authorization codes, session credentials and tokens.</li>
+<li>The broker owns upstream token material. The example only hands off <code>{iss, sub, name?, email?}</code> and an opaque session reference. It does not hand off tenant/role claims, an access token or proof of BTA permission.</li>
+<li>The current adapter does not call UserInfo. Requested <code>profile</code>/<code>email</code> scopes do not guarantee those claims will be present in the ID token. CoreLayer and the consuming application team MUST agree the delivery and verified mapping of every required identity/authorization claim; extending the current identity whitelist is additional application work.</li>
+<li>Authorization MUST use validated subject/tenant/permission information, not a display name or unverified email. The identity key is the <code>(iss, sub)</code> pair. CoreLayer must confirm subject continuity or an explicit mapping when the dedicated client uses pairwise subjects.</li>
+</ul>
+<a class="back" href="#contents">↑ Contents</a></section><section class="technical" id="section-5"><div class="section-label">Full contract · Section 5</div><h2>5. Existing X4 broker interface</h2>
+<p>These routes describe the current standalone proof of concept in OIDC mode. They are X4-owned and are included so CoreLayer can understand how previews are selected. CoreLayer is not asked to implement them. JSON bodies are bounded to 16 KiB; <code>expiresAt</code> is Unix epoch milliseconds.</p>
+<div class="table-wrap" role="region" aria-label="Contract table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Method and path</th>
+<th>Authentication / request</th>
+<th>Success</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>GET /health</code></td>
+<td>Liveness only</td>
+<td><code>200</code>, mode/configuration metadata</td>
+</tr>
+<tr>
+<td><code>GET /readyz</code></td>
+<td>Discovery check</td>
+<td><code>200</code> if required metadata exists; otherwise <code>503</code></td>
+</tr>
+<tr>
+<td><code>POST /previews</code></td>
+<td>Controller bearer; <code>{id, generation, origin, redeemSecret, leaseMs?}</code></td>
+<td><code>201</code>, <code>{id, generation, origin, expiresAt}</code>; same generation and origin/credential renews</td>
+</tr>
+<tr>
+<td><code>DELETE /previews/:id</code></td>
+<td>Controller bearer; <code>{generation}</code></td>
+<td><code>200</code>, <code>{removed: true}</code></td>
+</tr>
+<tr>
+<td><code>POST /login/start</code></td>
+<td>Preview bearer; <code>{previewId, generation, returnState, challenge}</code></td>
+<td><code>200</code>, <code>{loginUrl}</code></td>
+</tr>
+<tr>
+<td><code>GET /login?request=…</code></td>
+<td>Browser; one-use request handle</td>
+<td><code>303</code> to CoreLayer</td>
+</tr>
+<tr>
+<td><code>GET /callback</code></td>
+<td>Browser; CoreLayer authorization response and bound cookie/state</td>
+<td><code>303</code> to registered preview handoff callback</td>
+</tr>
+<tr>
+<td><code>POST /handoff/redeem</code></td>
+<td>Preview bearer; <code>{previewId, generation, ticket, verifier}</code></td>
+<td><code>200</code>, <code>{identity, sessionId, expiresAt}</code></td>
+</tr>
+<tr>
+<td><code>POST /session/validate</code></td>
+<td>Preview bearer; <code>{previewId, generation, sessionId}</code></td>
+<td><code>200</code>, <code>{active: false}</code> or <code>{active: true, identity, expiresAt}</code></td>
+</tr>
+<tr>
+<td><code>POST /session/logout</code></td>
+<td>Preview bearer; <code>{previewId, generation, sessionId}</code></td>
+<td><code>200</code>, <code>{logoutUrl}</code> after removing the initiating broker session</td>
+</tr>
+<tr>
+<td><code>GET /logout?request=…</code></td>
+<td>Browser; one-use request handle</td>
+<td><code>303</code> to provider RP-initiated logout</td>
+</tr>
+<tr>
+<td><code>GET /logout-callback</code></td>
+<td>Browser; correlated logout state/cookie</td>
+<td><code>303</code> to initiating preview origin</td>
+</tr>
+</tbody></table></div>
+<p>The controller bearer and each preview&#39;s <code>redeemSecret</code> are different credentials. A preview credential can operate only on its registered preview generation. The proof of concept&#39;s controller credential is globally trusted; it can register HTTPS origins and replace registrations. Before automated lifecycle use, X4 MUST constrain registration to active owned ingress routes and coordinate concurrent replacement, rotation and stale cleanup. The two registration systems must not be treated as one implemented operation today.</p>
+<p>Registration IDs currently allow 1–64 letters, digits, <code>_</code> or <code>-</code>; auth generations and return state allow 20–128 base64url characters. Registration IDs can be readable names. The example generates 32 random bytes for auth generations, credentials and opaque transaction references. Production credentials MUST use cryptographically random values with at least 256 bits of entropy; the permissive parser is not a generator policy.</p>
+<div class="table-wrap" role="region" aria-label="Contract table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Limit / timeout</th>
+<th>Current default</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Active auth previews</td>
+<td>100</td>
+</tr>
+<tr>
+<td>Entries per transaction/session store</td>
+<td>1,000</td>
+</tr>
+<tr>
+<td>Preview lease</td>
+<td>1 hour; accepted range 1 second–1 hour; renewal required</td>
+</tr>
+<tr>
+<td>Login start / OAuth transaction</td>
+<td>5 minutes each</td>
+</tr>
+<tr>
+<td>Handoff ticket</td>
+<td>30 seconds</td>
+</tr>
+<tr>
+<td>Broker session</td>
+<td>At most 15 minutes and capped by reported access-token lifetime</td>
+</tr>
+<tr>
+<td>Logout start / transaction</td>
+<td>60 seconds each</td>
+</tr>
+<tr>
+<td>OIDC network timeout</td>
+<td>5 seconds</td>
+</tr>
+<tr>
+<td>HTTP request/header timeout</td>
+<td>10 seconds</td>
+</tr>
+</tbody></table></div>
+<p>The current adapter uses a five-minute fallback when the token response omits <code>expires_in</code>. This is a proof-of-concept assumption, not evidence that an opaque CoreLayer token is valid for that period. CoreLayer and X4 MUST agree an authoritative expiry policy before real acceptance. Session validation currently checks local session/generation/lease expiry; it does not introspect upstream tokens, detect CoreLayer revocation, or authorize BTA operations.</p>
+<p>Errors include <code>400</code> malformed/invalid flow or failed callback exchange, <code>401</code> invalid bearer credential, <code>409</code> registration conflict, <code>410</code> missing/expired/replaced auth preview, <code>413</code> oversized request, and <code>503</code> unavailable discovery, failed readiness or bounded capacity. Unexpected gateway failures, including missing/unsupported logout metadata, currently return generic <code>500</code>; readiness does not check the logout endpoint. Registration validity is checked before the preview bearer, so a missing registration can produce <code>410</code> before a credential check. Preview adapters return a generic <code>503</code> when a required gateway operation fails. Errors MUST NOT expose provider responses or credentials. Setup mode deliberately returns <code>503</code> for readiness and every auth/registration/session operation; health remains <code>200</code> with <code>configured: false</code>.</p>
+<a class="back" href="#contents">↑ Contents</a></section><section class="technical" id="section-6"><div class="section-label">Full contract · Section 6</div><h2>6. Lifecycles, expiry, refresh and logout</h2>
+<p><strong>Required X4 lifecycle integration:</strong> allocate the workspace and service URLs; start and verify the application; register only the active receiving application origin with a fresh auth generation and a limited secret; renew its lease; advertise the preview as auth-ready only after successful integration checks. On stop, replacement or reap, invalidate the auth generation and outstanding sessions/tickets, retire ingress routes/listeners, and clean up the application. Failures MUST leave a recoverable record and MUST NOT advertise a stopped or unauthenticated application as ready. Details of retry/order across the two systems need implementation; no distributed atomicity is claimed.</p>
+<p>Stable DNS names are independent of auth generation. Stopping and recreating an application at the same name MUST NOT allow old login tickets or sessions into the replacement. Routing already has separate generation checks and recovery journals. Auth lifecycle registration/renewal/removal is not yet wired into the CLI.</p>
+<p><strong>Expiry/refresh baseline:</strong> the current broker has no refresh flow. A session ends at its bounded expiry and the application requests login again; CoreLayer may reuse its own SSO session according to policy. <code>offline_access</code> and the <code>refresh_token</code> grant are excluded from the initial client request. Add them only after agreeing consent, token storage/encryption, rotation/reuse detection, revocation and refresh concurrency. Refresh tokens MUST stay server-side with the OAuth client that owns them.</p>
+<p><strong>Current logout behavior:</strong> the sample removes the initiating application session and broker session, then requests upstream RP-initiated logout using <code>id_token_hint</code>, the fixed post-logout URI and fresh bound state. Other already established preview sessions remain locally active until expiry or explicit invalidation. The mock test proves this local behavior; it does not prove CoreLayer SSO or global logout behavior. Provider logout can affect subsequent sign-in in other previews.</p>
+<p><strong>Required product decision:</strong> before activation, CoreLayer, X4 and the consuming application teams must choose whether normal preview sign-out is local only or also ends upstream SSO, and whether global logout/revocation must immediately invalidate every related preview session. Local-only sign-out needs a separate supported action; immediate global invalidation needs provider notifications or another agreed enforcement mechanism. Neither is implemented by the current route. There MUST be no UI or security claim of global logout until its propagation is implemented and accepted.</p>
+<a class="back" href="#contents">↑ Contents</a></section><section class="technical" id="section-7"><div class="section-label">Full contract · Section 7</div><h2>7. Project-specific API adapters: portal/BTA example</h2>
+<p>This section is conditional on the consuming application&#39;s API needs. K12&#39;s possible CoreLayer portal exchange and BTA access are the worked example. For another project, substitute its own APIs and authorization contract; omit this adapter when the application only needs the authenticated identity/session. These requirements do not belong in the shared handoff protocol.</p>
+<p>For broker adopters, the current proof authenticates identity; it makes no portal exchange or BTA request. An OIDC ID token with audience equal to the gateway client ID MUST NOT be used as a BTA bearer token unless BTA&#39;s documented contract explicitly calls for that token type. Possession of a broker session does not itself grant an API permission.</p>
+<p>The preferred target keeps CoreLayer/portal token exchange and allowlisted BTA calls server-side under the broker, with the application backend/BFF acting for its authenticated preview session. This avoids per-preview browser CORS configuration for the token exchange and keeps upstream credentials out of experimental preview code. It requires an additional X4 API adapter, authorization rules and scoped operations; the current gateway provides none of these. It MUST NOT become a general-purpose authenticated HTTP proxy or trust a browser-supplied upstream URL.</p>
+<p>CoreLayer must supply the following before the API adapter contract can be finalized:</p>
+<div class="table-wrap" role="region" aria-label="Contract table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Required fact</th>
+<th>Question to resolve</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Portal exchange</td>
+<td>What endpoint/protocol, caller authentication, grant/input token type, audience/resource parameters and output token are required? Is the dedicated preview client permitted?</td>
+</tr>
+<tr>
+<td>BTA authorization</td>
+<td>Which API/environment and operation should acceptance test? Which token issuer, audience, scopes/roles, tenant/user claims and client restrictions does it enforce?</td>
+</tr>
+<tr>
+<td>User mapping</td>
+<td>Is <code>(iss, sub)</code> stable for the new client? If not, which approved mapping preserves the application&#39;s existing user/tenant without trusting email alone?</td>
+</tr>
+<tr>
+<td>Lifetime/revocation</td>
+<td>What are access/portal token expiry, refresh, rotation, revocation and logout guarantees? How quickly must permission changes take effect?</td>
+</tr>
+<tr>
+<td>Trust and placement</td>
+<td>May the central broker perform the portal exchange and BTA calls? Do any existing rules require the application&#39;s existing client, backend identity, browser session or browser-held token?</td>
+</tr>
+<tr>
+<td>CORS</td>
+<td>Can all token exchange/API operations be server-side? If the application must call an API from the browser, what exact origin policy is supported for preview origins?</td>
+</tr>
+</tbody></table></div>
+<p>If CoreLayer policy requires browser-held tokens or a different confidential client, this is a design change to review, not a reason to silently relay a gateway code/token into the application&#39;s existing OIDC library. The login callback remains fixed, but the application and API adapter may need another design. The separate direct application contract in section 1 preserves its existing exchange and API-token flow without routing it through the broker. No portal/BTA endpoint, claim name or scope is invented by this document.</p>
+<a class="back" href="#contents">↑ Contents</a></section><section class="technical" id="section-8"><div class="section-label">Full contract · Section 8</div><h2>8. Connectivity and operating requirements</h2>
+<p>The table below describes the broker. Direct applications instead require browser access to their pinned HTTPS worker ports and the CoreLayer discovery/token/portal endpoints used by their existing flow; exact browser origins and CORS permissions must be accepted by the provider/API owners.</p>
+<div class="table-wrap" role="region" aria-label="Contract table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Connection</th>
+<th>Required access</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Reviewer browser → preview and <code>auth.x4app.dev</code></td>
+<td>HTTPS 443 with current Tailscale access; exact Host/SNI routing</td>
+</tr>
+<tr>
+<td>Reviewer browser → CoreLayer</td>
+<td>Authorization, login/consent and supported logout pages</td>
+</tr>
+<tr>
+<td>Preview backend → gateway</td>
+<td>Authenticated HTTPS server-to-server operations; no browser CORS needed for these calls</td>
+</tr>
+<tr>
+<td>Gateway → CoreLayer</td>
+<td>HTTPS discovery, authorization metadata, token and JWKS; portal/API endpoints only once agreed</td>
+</tr>
+<tr>
+<td>Gateway → BTA</td>
+<td>Required only for the selected future server-side API adapter</td>
+</tr>
+</tbody></table></div>
+<p>The gateway is a continuously running service on <code>x4-control-1</code>, behind the private ingress. Its application listener remains on loopback; the ingress preserves the configured external Host. Tailscale connectivity is network access control, not a substitute for CoreLayer identity or application authorization.</p>
+<p>Before shared real-user use, X4 MUST provide reviewed secret storage/rotation, protected server-side transaction/session state, bounded retention/capacity, meaningful failure/readiness monitoring, redacted audit events, backup/recovery procedures and tested restart behavior. The current single-process in-memory broker loses registrations and sessions on restart and cannot share state across replicas. X4 must either implement durable/shared state or explicitly accept and document single-instance reauthentication semantics for a limited pilot. A green <code>/readyz</code> alone confirms discovery metadata, not a working client secret, login, logout, API permission or active registration.</p>
+<p>Ingress route state persists independently; it currently has no independent abandoned-worker lease/reconciliation. Auth lease expiry does not automatically remove an ingress route. Applications MUST continue to reject unauthenticated requests if a route outlives an auth registration. X4 must complete route retirement/reconciliation and auth lifecycle work before claiming automatic end-to-end cleanup.</p>
+<a class="back" href="#contents">↑ Contents</a></section><section class="technical" id="section-9"><div class="section-label">Full contract · Section 9</div><h2>9. Implementation and deployment baseline</h2>
+<div class="table-wrap" role="region" aria-label="Contract table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Source implementation</th>
+<th>Deployment / evidence</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Registry <code>preview.hostname</code>, scoped origin references</td>
+<td>Implemented</td>
+<td>CLI installed on <code>x4-devbox-04</code>; other workers need rollout</td>
+</tr>
+<tr>
+<td>Dynamic private HTTPS preview routing</td>
+<td>Implemented</td>
+<td>Control ingress installed; two concurrent five-service sample stacks verified</td>
+</tr>
+<tr>
+<td>Explicit <code>preview.port</code> on domain-configured workers; mixed pinned/generated routing</td>
+<td>Source compatibility implementation for PR #121</td>
+<td>Source-only change; not deployed by this revision; validation evidence recorded separately</td>
+</tr>
+<tr>
+<td>Direct application OIDC with the unchanged K12 Prevent registry</td>
+<td>Existing application flow retained by routing compatibility</td>
+<td>Real CoreLayer sign-in, browser CORS and BTA permissions not verified here</td>
+</tr>
+<tr>
+<td>Single-callback OIDC broker + preview session handoff</td>
+<td>Standalone proof of concept, mock provider tested</td>
+<td><code>auth.x4app.dev</code> installed in <strong>setup mode</strong>, real login disabled</td>
+</tr>
+<tr>
+<td>Cookie/browser binding, PKCE, nonce and signature checks</td>
+<td>Proof of concept with automated tests</td>
+<td>Mock evidence; real CoreLayer acceptance pending</td>
+</tr>
+<tr>
+<td>Real application receiving adapters and authorization mapping</td>
+<td>Sample adapter only; no real project broker integration verified here</td>
+<td>Required for broker adopters; direct applications retain their own authentication integration</td>
+</tr>
+<tr>
+<td>Automatic auth registration, renewal, removal in X4</td>
+<td>Not implemented</td>
+<td>Required lifecycle work; domain publishing alone does not provide it</td>
+</tr>
+<tr>
+<td>Broker portal exchange and BTA API authentication</td>
+<td>Not implemented/verified</td>
+<td>CoreLayer contract and API adapter required; direct mode retains the existing app flow, unverified here</td>
+</tr>
+<tr>
+<td>Refresh, immediate global logout/revocation propagation</td>
+<td>Not implemented</td>
+<td>Policy and implementation required if in scope</td>
+</tr>
+<tr>
+<td>Durable/shared auth state, production operations</td>
+<td>Not implemented</td>
+<td>Pilot operating policy or additional implementation required</td>
+</tr>
+</tbody></table></div>
+<p>The source may receive further fixes after an installed release. Verification and release records must identify what was tested and what was deployed; local source tests do not imply the running gateway was upgraded. The <a href="../sandbox-custom-domains.md">domain runbook</a> and <a href="../../examples/preview-auth-gateway/deploy/README.md">gateway deployment runbook</a> record the installed baseline.</p>
+<p>The <a href="../preview-integration-polish-verification.md">implementation polish report</a> records the reviewed source changes, automated/live checks and deployment boundary for this handoff.</p>
+<a class="back" href="#contents">↑ Contents</a></section><section class="technical" id="section-10"><div class="section-label">Full contract · Section 10</div><h2>10. Acceptance and rollout gates</h2>
+<p>The table defines broker rollout. For direct K12 Prevent, acceptance must separately prove the exact app-origin callbacks, browser PKCE/exchange/CORS, existing BTA authorization, session expiry/logout and fixed-port conflict/cleanup behavior. Source routing compatibility alone does not satisfy that acceptance or enable real login. Its pinned pair does not promise concurrent copies on one worker or a shared broker callback.</p>
+<div class="table-wrap" role="region" aria-label="Contract table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Gate</th>
+<th>Acceptance evidence</th>
+<th>Owners</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A. Contract agreed</td>
+<td>Dedicated client; exact callbacks; issuer, client authentication, scopes, identity mapping and logout policy agreed; application-specific audience/API requirements recorded if applicable; secret delivered securely</td>
+<td>CoreLayer + X4 + application team</td>
+</tr>
+<tr>
+<td>B. Real-provider pilot</td>
+<td>Two previews of a real consuming application complete CoreLayer login through the same callback and establish correctly mapped application sessions; denied consent/invalid client fails closed</td>
+<td>X4 + application team + CoreLayer</td>
+</tr>
+<tr>
+<td>C. API authorization, if required</td>
+<td>Each preview performs its agreed downstream API operation for its own user/tenant; wrong audience, insufficient permission and cross-tenant attempts are denied. Record not applicable for an identity-only application.</td>
+<td>Application team + API owner + CoreLayer + X4</td>
+</tr>
+<tr>
+<td>D. Isolation and lifecycle</td>
+<td>Parallel users/tabs/previews, replay/wrong-state/wrong-verifier rejection, exact-origin CSRF, lease expiry, auth generation replacement, stop/reap/retry and hostname reuse verified</td>
+<td>X4 + application team</td>
+</tr>
+<tr>
+<td>E. Session operations</td>
+<td>Real expiry/reauthentication, agreed refresh if enabled, explicit local/upstream/global logout policy, upstream outage and restart/recovery tested</td>
+<td>Joint</td>
+</tr>
+<tr>
+<td>F. Shared-use release</td>
+<td>Operational controls and rollback reviewed; source/deployed versions recorded; no mock provider enabled; existing static routes preserved</td>
+<td>X4 operations</td>
+</tr>
+</tbody></table></div>
+<p>For Gate D specifically, tests MUST show that a ticket from preview A cannot authenticate preview B, that a transaction cannot complete after its lease/generation expires, and that stopping/replacing A leaves B reachable with its own session policy. An authenticated session in one preview MUST NOT create a shared parent-domain cookie or confer authorization in another preview.</p>
+<p>Existing mock and routing tests are architectural evidence only. They cannot satisfy Gates B, C or the CoreLayer-specific parts of E. Initial activation SHOULD be a controlled non-production pilot; rollback disables auth initiation/readiness and invalidates broker sessions while preserving unrelated control/preview routes. A route remaining reachable after rollback must still enforce application authentication.</p>
+<a class="back" href="#contents">↑ Contents</a></section><section class="technical" id="section-11"><div class="section-label">Full contract · Section 11</div><h2>11. CoreLayer response worksheet</h2>
+<p>CoreLayer can reply using this table. Only non-secret configuration belongs in the response; deliver credentials through the approved secret mechanism.</p>
+<div class="table-wrap" role="region" aria-label="Contract table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Input</th>
+<th>CoreLayer response</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Selected contract: direct application OIDC or broker handoff</td>
+<td>Confirm per consuming application</td>
+</tr>
+<tr>
+<td>Direct applications: client ID, exact app-origin login/logout callbacks and browser endpoint/CORS policy</td>
+<td>Confirm for existing application contract</td>
+</tr>
+<tr>
+<td>Environment / tenant and deployed Hydra version</td>
+<td>To provide</td>
+</tr>
+<tr>
+<td>Exact issuer URL and discovery URL</td>
+<td>To provide</td>
+</tr>
+<tr>
+<td>Dedicated client ID; <code>client_secret_basic</code> accepted?</td>
+<td>To provide</td>
+</tr>
+<tr>
+<td>Both fixed redirect registrations confirmed</td>
+<td>To provide</td>
+</tr>
+<tr>
+<td>PKCE S256, signing algorithms and JWKS rotation</td>
+<td>To provide</td>
+</tr>
+<tr>
+<td>Approved scopes, audience/resource parameter and values</td>
+<td>To provide</td>
+</tr>
+<tr>
+<td>Required user/tenant/permission claims and subject continuity</td>
+<td>To provide</td>
+</tr>
+<tr>
+<td>Portal exchange documentation and dedicated-client eligibility, where needed by a consuming application</td>
+<td>To provide, or record not applicable</td>
+</tr>
+<tr>
+<td>Required downstream API test environment, token and one allowed/denied operation (e.g. BTA for K12)</td>
+<td>To provide per application, or record not applicable</td>
+</tr>
+<tr>
+<td>Token expiry, refresh/rotation/revocation and logout policy</td>
+<td>To provide</td>
+</tr>
+<tr>
+<td>Whether server-side exchange/API calls satisfy policy; remaining CORS requirements</td>
+<td>To provide</td>
+</tr>
+<tr>
+<td>Test accounts/roles and coordination contact</td>
+<td>To provide through appropriate channels</td>
+</tr>
+</tbody></table></div>
+<a class="back" href="#contents">↑ Contents</a></section><section class="technical" id="references"><div class="section-label">Full contract · Reference</div><h2>References</h2>
+<ul>
+<li><a href="https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest">OIDC Core: authentication requests and redirect URI requirements</a>, <a href="https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation">ID-token validation</a>.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.3">OAuth 2.0 code exchange, RFC 6749 §4.1.3</a>, <a href="https://www.rfc-editor.org/rfc/rfc6749.html#section-6">refresh, §6</a>.</li>
+<li><a href="https://www.rfc-editor.org/rfc/rfc9700.html">OAuth security BCP, RFC 9700</a>, <a href="https://www.rfc-editor.org/rfc/rfc7636.html">PKCE, RFC 7636</a>.</li>
+<li><a href="https://openid.net/specs/openid-connect-rpinitiated-1_0.html">OIDC RP-Initiated Logout</a>.</li>
+<li><a href="https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig">OIDC Discovery</a>, <a href="https://openid.net/specs/openid-connect-core-1_0.html#ClaimStability">subject stability</a> and <a href="https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg">pairwise subject identifiers</a>.</li>
+<li><a href="https://www.ietf.org/archive/id/draft-ietf-httpbis-rfc6265bis-22.html">Cookie scope, same-site requests and host-prefixed cookies (IETF working draft)</a>.</li>
+<li><a href="https://github.com/ory/docs/blob/4a8e1bb690e9538235095595eabd3fa72a82d571/docs/hydra/guides/oauth2-clients.mdx">Ory client configuration and redirect requirements</a>, <a href="https://github.com/ory/hydra/blob/4174065ffb052799890f7480f5360a877a67ffc1/client/client.go">Hydra client fields</a>, <a href="https://github.com/ory/docs/blob/4a8e1bb690e9538235095595eabd3fa72a82d571/docs/hydra/guides/cors.mdx">Ory CORS</a>.</li>
+<li><a href="../ai-research/research-x4-corelayer-preview-auth-gateway.md">Local protocol research and source citations</a>, <a href="../ai-research/corelayer-integration-contract-audit.md">current contract audit</a>.</li>
+<li><a href="../../examples/preview-auth-gateway/gateway.mjs">Gateway implementation</a>, <a href="../../examples/preview-auth-gateway/preview.mjs">sample receiving adapter</a>, <a href="../sandbox-custom-domains.md">registry/domain guide</a>.</li>
+</ul>
+<h3>Revision history</h3>
+<div class="table-wrap" role="region" aria-label="Contract table" tabindex="0"><table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1.0</td>
+<td>Initial X4 integration contract for CoreLayer review, including fixed client registration, current broker interface, implementation gaps and joint acceptance gates.</td>
+</tr>
+<tr>
+<td>1.1</td>
+<td>Clarify project-agnostic scope, per-application adapter ownership and acceptance, with K12/portal/BTA as an optional worked example.</td>
+</tr>
+<tr>
+<td>1.2</td>
+<td>Support direct application OIDC alongside optional broker adoption; document authoritative pinned worker ports, mixed routing and PR #121 compatibility without claiming deployment or real-provider acceptance.</td>
+</tr>
+</tbody></table></div>
+<a class="back" href="#contents">↑ Contents</a></section><section class="technical" id="client-json"><div class="section-label">Registration attachment</div><h2>Exact broker client registration example</h2><p>Inline copy of <a href="corelayer-preview-client.example.json">corelayer-preview-client.example.json</a>. No secret or guessed issuer/audience is included. The complete example is available offline below.</p><pre><code class="language-json">{
+  &quot;client_name&quot;: &quot;X4 non-production preview authentication&quot;,
+  &quot;redirect_uris&quot;: [
+    &quot;https://auth.x4app.dev/callback&quot;
+  ],
+  &quot;post_logout_redirect_uris&quot;: [
+    &quot;https://auth.x4app.dev/logout-callback&quot;
+  ],
+  &quot;response_types&quot;: [
+    &quot;code&quot;
+  ],
+  &quot;grant_types&quot;: [
+    &quot;authorization_code&quot;
+  ],
+  &quot;token_endpoint_auth_method&quot;: &quot;client_secret_basic&quot;,
+  &quot;scope&quot;: &quot;openid profile email&quot;
+}
+</code></pre><a class="back" href="#contents">↑ Contents</a></section><footer>HTML reading edition of X4-CORELAYER-AUTH-001 · v1.2 · 2026-10-27. The Markdown companion remains authoritative. All contract content and the client example are inline; linked references and source files are supplemental. No JavaScript, external fonts or display assets are required.</footer></main></body></html>
