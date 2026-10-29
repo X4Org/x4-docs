@@ -101,7 +101,7 @@ These fields are excerpts to add to runnable services. On domain-configured exec
 
 Do not combine `preview.hostname` and `preview.port` on a service. An occupied explicit port fails instead of silently moving the application to an unregistered URL. The pinned pair is therefore limited to one stack per worker unless its ports, worker env URLs and CoreLayer registrations are changed together. Ports on a single hostname do not isolate cookies; distinct generated domains remain the default for concurrent previews and are required for separate broker registrations.
 
-This source compatibility supports the unchanged [PR #121 K12 Prevent registry](https://github.com/X4Org/x4/pull/121), which runs the BTA product separately from the Mastra `k12` profile. It preserves the application's direct `eduforge-shell` OIDC/PKCE and portal/BTA-token flow. CoreLayer still needs the exact frontend-origin login/logout registrations, browser endpoint/CORS permissions and existing BTA authorization. Neither routing mode automatically enables authentication. This compatibility change has not been deployed or validated with real-provider sign-in.
+The [K12 Prevent registry](../registry/k12-prevent.registry.yaml) runs the BTA product separately from the Mastra `k12` profile. It uses the application's direct `eduforge-shell` OIDC/PKCE and portal/BTA-token flow. CoreLayer must confirm the exact frontend-origin login/logout registrations, browser endpoint/CORS permissions and existing BTA authorization, and the worker needs its completed K12 testing bundle. Real K12/CoreLayer sign-in has not been verified. Follow the [K12 Prevent setup and testing guide](k12-prevent-setup.md) for the complete operator sequence and application acceptance checklist.
 
 Without domain configuration, the older generic `x4 preview serve` path retains its existing backend/protocol behavior; explicit ports do not enable domain publishing.
 
@@ -136,7 +136,7 @@ The [illustrated CoreLayer integration specification](specs/corelayer-preview-au
 
 ## DNS and certificate prerequisites
 
-The control server is `x4-control-1`, tailnet address `100.94.115.83`. These DNS-only Cloudflare records point to it:
+The control server is `control01.x4app.dev`, tailnet address `100.94.115.83`. These DNS-only Cloudflare records point to it:
 
 | Record | Type | Value |
 | --- | --- | --- |
@@ -171,26 +171,18 @@ systemctl status x4-preview-domain-renew.service
 openssl x509 -in /var/lib/x4-domains/certificates/preview.crt -noout -dates -ext subjectAltName
 ```
 
-The nonsecret historical deployment snapshot is saved in `deploy/domains/preview-prerequisites-verification.json`; it records that earlier installation and does not verify a new deployment.
+## Runtime installation and verification
 
-## Deployment and verification status
+The worker needs an X4 CLI that supports hostname templates, explicit preview ports and effective service origins. Control needs the corresponding ingress runtime. Loading a project registry does not install either runtime; verify the installed versions and routing behavior before starting the application.
 
-The explicit-port/mixed-routing compatibility described above is a later source-only change for PR #121. The installed releases below predate it. No compatibility runtime or documentation deployment, or real CoreLayer login validation, is claimed here.
+The controlled ingress installer is `deploy/domains/preview-install-routing.py`. It provisions `dev04.x4app.dev`; adapt its explicit worker identity and operator paths when extending to another worker. It preserves existing static routes, validates staged configuration, takes backups, and rolls back if existing service responses or authentication health change. Record the source revision, backup location, rollback command and verification results with each deployment.
 
-On October 26, 2026, the dynamic ingress, publisher configuration, and registry hostname template support were installed for `x4-devbox-04`. That worker's `x4` command now uses `/home/dev/x4-releases/registry-hostnames-20261026T214055Z`; the previous custom-domain release remains `/home/dev/x4-releases/custom-domains-20261026T213052Z` for rollback. Other workers have not been upgraded or issued publication credentials by this change. Registry hostname templates require this updated CLI implementation; the earlier custom-domain release alone does not add that field.
-
-Validation passed: 82 Node tests (76 targeted sandbox/domain/schema checks and six existing registry checks) and 17 live routing/CORS/lifecycle checks against two real five-container sample sandboxes. The live check confirmed registry aliases override the profile name, all ten URLs served over HTTPS without explicit ports, and republishing one sandbox preserved every URL. Stopping one sandbox left the other reachable. Both sample stacks were then stopped, their listeners removed, and the central publication list verified empty. The unchanged ingress previously passed Go tests with the race detector plus `go vet`. Real Handbook and CoreLayer login were not exercised by that fixture.
-
-The hostname-template run produced `/tmp/x4-registry-hostname-node-tests.tap`, `/tmp/x4-registry-hostname-registry-tests.tap`, and `/tmp/x4-registry-hostname-live-verification.json`. Worker release metadata is `/tmp/x4-registry-hostname-worker-deployment.json`.
-
-A subsequent [source polish and verification pass](preview-integration-polish-verification.md) hardened validation, cleanup ownership, lock recovery, ingress headers and the standalone auth example. It passed 125 Node tests, Go checks and 17 live routing checks. Those later source fixes were not deployed; the installed release and setup-mode auth service remain as recorded above.
-
-The live check can be repeated from the X4 checkout on this configured worker:
+Run the live routing check from the X4 checkout on the configured worker:
 
 ```bash
 node examples/sandbox-service-domains/verify.mjs /tmp/x4-sandbox-domain-live-verification.json
 ```
 
-The controlled ingress installer is `deploy/domains/preview-install-routing.py`. It currently provisions `x4-devbox-04`; adapt its explicit worker identity and operator paths when extending to another worker. It preserves existing static routes, validates staged configuration, takes backups, and rolls back if existing service responses or authentication health change. The installed ingress preserves all five existing static hostnames. Historical rollout evidence and the exact ingress rollback command are in `deploy/domains/preview-routing-deployment-verification.json`. Re-run verification after any new deployment.
+The fixture checks generated-domain HTTPS routing, effective service origins, CORS isolation and cleanup using synthetic services. Re-run routing verification after runtime changes and confirm that existing previews remain available. Application capability grants do not authorize TCP traffic; unknown network constraints fail closed.
 
-The first ingress attempt detected an incompatibility with Tailscale's current `CapGrant` field and rolled back. The deployed version includes a regression for that schema: application capability grants do not authorize TCP traffic, and unknown network constraints still fail closed.
+For direct K12 login, follow the [K12 setup guide](k12-prevent-setup.md) to install the private testing bundle, confirm CoreLayer registrations, start the stack and run real health, sign-in, logout and case-opening acceptance. Roster data requires a CoreLayer sync. Passing synthetic routing checks does not complete these application tests. The optional broker at `auth.x4app.dev` remains in setup mode with real login disabled.
