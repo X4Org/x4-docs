@@ -272,6 +272,53 @@ external Node interpreter, and `X4_SANDBOX_PREVIEW_SUDO=1` when Serve requires
 passwordless sudo. With remote X4 connections, these tools and the checkout
 belong on the connected server.
 
+### Per-service env
+
+By default every service that does not set `injectEnvFile: false` receives the
+whole bundle. A service with `bundleEnv` receives only the values it names, in
+its own env file, so a frontend gets no database password and two services can
+read the same variable name with different values:
+
+```yaml
+envBundles:
+  mastra-testing:
+    groups:                     # names only; values stay in the bundle
+      ai: [AZURE_AI_FOUNDRY_ENDPOINT, AZURE_AI_FOUNDRY_API_KEY]
+profiles:
+  split:
+    envBundle: mastra-testing
+    services:
+      - id: api
+        bundleEnv:
+          groups: [ai]                                # under their own names
+          keys: [TAVILY_API_KEY]
+          map: { DATABASE_URL: CORE_DATABASE_URL }    # name in the container: bundle key
+      - id: worker
+        bundleEnv:
+          map: { DATABASE_URL: ANALYTICS_DATABASE_URL }
+      - id: widget
+        bundleEnv: {}                                 # nothing from the bundle
+```
+
+- Groups belong to the bundle: `envBundles.<id>.groups` in X4 Control (the
+  **Key groups** field of an environment), in the templates file, or at the top
+  level of `.x4/sandbox.yaml`. A manifest's group replaces a group of the same
+  id. Control checks that a Control-defined bundle provides every grouped key.
+  The manifest sent to a worker carries the groups, so the worker needs no
+  access to Control.
+- Every variable has one source. Two sources for one name, a name also set in
+  the service's `environment`, or an unknown group stop the start. So does a
+  bundle key missing from the env file, reported by name.
+- A service sets `bundleEnv` or `injectEnvFile`, not both. In a child profile,
+  an override that names one drops the other inherited from the parent.
+- The files are `.x4/sandbox/env/service-<id>.env`, mode 0600, rewritten at
+  every start. `x4 sandbox explain` lists each service's variables
+  (`DATABASE_URL <- CORE_DATABASE_URL`), never values.
+- Hosts that start or run stacks need an `x4` that knows `bundleEnv` before a
+  profile in Control uses it; an older `x4` refuses the profile. Update workers
+  with `scripts/update-worker.sh` and devboxes' X4 Code release first. Groups
+  alone are safe to add: they reach a worker only with a profile that uses them.
+
 ## Mastra Docker execution runtime
 
 The maintained `registry/x4-pilot-registry.yaml` provides `mastra-pilot` and

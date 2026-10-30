@@ -156,7 +156,11 @@ For sandbox services, X4 treats the bundle as one whole runtime env file rather
 than classifying every key. `x4 sandbox up --env-source <file>` copies a
 sanitized, CRLF-normalized, job/workspace-scoped env file into
 `.x4/sandbox/env/` and generated Compose services receive it through `env_file`.
-The runtime copy is not tracked, printed, posted, or copied into artifacts.
+A service with `bundleEnv` instead receives its own
+`.x4/sandbox/env/service-<id>.env` holding only the bundle keys it lists, by
+group, by key or under another name; see
+[per-service env](sandbox.md#per-service-env). The runtime copies are not
+tracked, printed, posted, or copied into artifacts.
 
 The parser handles common dotenv files with CRLF line endings, `export KEY=...`
 prefixes, comments, quoted values, and unquoted values containing spaces. The
