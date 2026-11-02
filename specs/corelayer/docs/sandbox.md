@@ -185,6 +185,13 @@ other people, and a service's `preview.links` lists named pages
 
 ### Env bundles defined in X4 Control
 
+Create environments from their product page in
+[X4 Control](https://control.x4app.dev/projects/). A product can have several;
+each has a `productId` owner and a stable bundle ID used by preview profiles.
+Existing unassigned bundles remain usable while ownership is assigned. Choosing
+a product's default environment supplies a workspace fallback; a profile's
+explicit bundle still takes precedence.
+
 With `X4_REGISTRY_URL` set, an env bundle in X4 Control's registry can define
 its contents, so no machine keeps its own copy of the env file:
 
@@ -272,6 +279,47 @@ external Node interpreter, and `X4_SANDBOX_PREVIEW_SUDO=1` when Serve requires
 passwordless sudo. With remote X4 connections, these tools and the checkout
 belong on the connected server.
 
+### Own values per container
+
+An environment set in X4 Control can give one container its own value for a
+variable, so two containers read the same name with different values. The
+environment keeps them by container name, and they apply to that container in
+every preview profile that uses the environment:
+
+```yaml
+envBundles:
+  k12-prevent-testing:
+    values: { OIDC_ISSUER: https://login.example/shared }
+    keyVault: { vault: test-aitools-llfckv, secrets: { OPENAI_API_KEY: openai-api-key } }
+    containers:
+      k12-prevent:
+        values: { OIDC_ISSUER: https://login.example/web }   # its own plain value
+        secrets: { OPENAI_API_KEY: openai-api-key-web }     # its own secret, same vault
+        omit: [LINEAR_API_KEY]                              # not given to it
+```
+
+In Control, the environment's Variables table shows one column per container,
+each cell what that container reads; **Edit** sets a cell to the shared value,
+its own value, its own Key Vault secret, or *not given*. A column heading
+switches a container between this environment and nothing
+(`injectEnvFile: false` on its preview profile).
+
+The host that starts the stack resolves them with the shared values and carries
+them in the prepared file under reserved names (`X4_CONTAINER__<CONTAINER>__<KEY>`
+and `X4_CONTAINER_OMIT__<CONTAINER>`). The stack's host then writes each
+container that gets the environment its own file,
+`.x4/sandbox/env/service-<id>.env`, with its own values in place of the shared
+ones; the shared file keeps no container's own lines. Container names that
+differ only in `-` and `_` are refused. Forbidden key patterns apply to the
+variable a line sets, not to the container's name.
+
+Own values need values set in Control: an environment kept in the host's env
+file has one value per name. Both the host that starts stacks and the stack's
+host need an `x4` with this support before an environment uses it; an older
+host that starts stacks ignores own values, and an older stack host would give
+every container the reserved lines. Update workers with
+`scripts/update-worker.sh` and devboxes' X4 Code release first.
+
 ### Per-service env
 
 By default every service that does not set `injectEnvFile: false` receives the
@@ -301,7 +349,7 @@ profiles:
 ```
 
 - Groups belong to the bundle: `envBundles.<id>.groups` in X4 Control (the
-  **Key groups** field of an environment), in the templates file, or at the top
+  **Groups** column of an environment's variables), in the templates file, or at the top
   level of `.x4/sandbox.yaml`. A manifest's group replaces a group of the same
   id. Control checks that a Control-defined bundle provides every grouped key.
   The manifest sent to a worker carries the groups, so the worker needs no
