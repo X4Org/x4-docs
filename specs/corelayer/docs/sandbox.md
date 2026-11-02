@@ -216,6 +216,58 @@ name looks like a secret (`*_PASSWORD`, `*_API_KEY`, `*_TOKEN`,
 `*CONNECTION_STRING`, `*_KEYS_JSON` and similar). A bundle without `values` or
 `keyVault` keeps using the host's file described below.
 
+### Stacks built from several repositories
+
+A product conversation's workspace holds the product's other repositories
+under `.x4/repos/<repo>` (docs/product-workspaces.md). When the entry
+repository has no preview profiles of its own, the Sandbox panel offers the
+registry's sandbox profiles whose services all build from the workspace's
+repositories, so a product such as K12 Prevent (frontend from
+`ruunis-ui-modules`, API from `bta-poc`) can start its whole stack.
+
+On a worker, a start then:
+
+- sends each repository the stack builds from at its own HEAD (a git bundle,
+  incremental on restart), to `<stack>/repos/<repo id>` next to the checkout,
+  overlays its uncommitted files with `--sync-working-tree`, and runs its
+  dependency recipe;
+- sends the chosen stack in the worker's manifest, with the entry repository
+  as `repo: self` and the others under their registry ids;
+- starts it with `x4 sandbox session start ... --repo <id>=<path>` for each,
+  so the worker's workspace lists them and each service mounts its own;
+- records each repository's commit in the stack's state and in the record X4
+  Control's Previews view reads.
+
+A repository manifest may name these repositories as well as `self`; the
+worker refuses a service whose repository was not delivered. Workers need an
+`x4` with `--repo` before a product starts such a stack on them. To try a new
+`x4` on a worker before replacing the installed one, set
+`X4_SESSION_WORKER_X4=<absolute path to its cli.js>` on the host that starts
+the stack.
+
+### Private GitHub code for installs
+
+Some projects install code from other private repositories (K12 Prevent's
+apps depend on `X4Org/bta-contracts`). An environment in X4 Control can list
+them in `githubAccess` with the variable its install step reads:
+
+```yaml
+envBundles:
+  k12-prevent-testing:
+    githubAccess: { repositories: [X4Org/bta-contracts], variable: BTA_CONTRACTS_TOKEN }
+```
+
+At each stack start, the host that starts it asks X4 Control
+(`POST /api/projects/env-bundles/<id>/github-access`, with its registry
+token). Control asks X4's GitHub App for a token that can only read those
+repositories and expires within an hour. `x4` adds it to that start's env
+file only: on a worker it travels on the SSH session's stdin
+(`x4 sandbox session start --extra-env-stdin`), never on a command line, and
+it is never written to the installed bundle in `/etc/x4/env`. Nobody creates,
+stores or rotates a token. The project's install step reads the variable
+(K12 Prevent's start commands pass it to `npm ci`/`bun install` and remove it
+before the app runs).
+
 ### Environment files for session stacks
 
 A profile that needs secrets names an env bundle and opts services in:
