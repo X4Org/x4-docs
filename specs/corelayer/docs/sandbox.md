@@ -219,11 +219,14 @@ name looks like a secret (`*_PASSWORD`, `*_API_KEY`, `*_TOKEN`,
 ### Stacks built from several repositories
 
 A product conversation's workspace holds the product's other repositories
-under `.x4/repos/<repo>` (docs/product-workspaces.md). When the entry
-repository has no preview profiles of its own, the Sandbox panel offers the
-registry's sandbox profiles whose services all build from the workspace's
-repositories, so a product such as K12 Prevent (frontend from
-`ruunis-ui-modules`, API from `bta-poc`) can start its whole stack.
+under `.x4/repos/<repo>` (docs/product-workspaces.md). The Sandbox panel
+offers the registry's sandbox profiles whose services all build from the
+workspace's repositories, so a product such as K12 Prevent (frontend from
+`ruunis-ui-modules`, API from `bta-poc`) can start its whole stack. They come
+after the entry repository's own profiles, which keep their default and win on
+a shared id: a K12 Prevent ticket routed to `bta-poc` offers `k12-prevent-api`
+(its default) and the whole-product `k12-prevent`. A checkout outside a product
+workspace offers only its repository's profiles.
 
 On a worker, a start then:
 
