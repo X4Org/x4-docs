@@ -138,7 +138,9 @@ x4 sandbox session start --entry /path/to/session/checkout --target local  # thi
 - Session stacks expire one week after their last start
   (`jobTypes.sessionSandbox.ttlMinutes`, override with `--ttl-minutes`, `0`
   never expires). `x4 control gc --reap-sandboxes` stops expired worker stacks,
-  retires their preview routes and removes their worker directory.
+  retires their preview routes and removes their worker directory. On the
+  worker itself, `x4 sandbox stacks gc --apply` does the same, hourly from a
+  systemd timer ([deploy/testbox](../deploy/testbox/README.md)).
 
 ### Where previews are listed and how they end
 
@@ -160,6 +162,14 @@ A stopped stack keeps its workspace folder (checkout, env file and start
 record) and its Docker volumes, and Control lists it as Stopped. Deleting it in
 Control, or `x4 sandbox stacks delete <id>` on the worker, stops it if needed
 and removes those too; it then disappears from the list.
+
+`x4 sandbox stacks gc` reports the stacks that need cleaning up: expired ones,
+and ones whose containers still run although their state says stopped (a
+stopped preview, a stopped sandbox, or a missing workspace folder). It is a
+dry run unless you pass `--apply`, which deletes the expired stacks and stops
+the others. A stack that changed in the last hour (`--grace-minutes`) or is in
+the middle of another operation is left alone. Its JSON report and the hourly
+timer are described in [deploy/testbox](../deploy/testbox/README.md).
 
 ### Profiles X4 offers every session
 
@@ -360,7 +370,9 @@ install command.
 Previews require Tailscale on the host that runs the stack. X4
 publishes HTTPS `*.ts.net` origins on isolated ports and verifies the route and
 service status before offering a link. A service's `preview.port` reserves an
-explicit HTTPS port; startup refuses an occupied port. Non-browser services
+explicit HTTPS port; startup refuses an occupied port, so the profile runs once
+per worker. Registries must mark such a service `preview.exclusive: true`
+([registry guide](registry-guide.md#ports)). Non-browser services
 still appear with status and dependencies. Stopping removes only routes that
 still point at this sandbox. Routes created by other sessions remain intact.
 

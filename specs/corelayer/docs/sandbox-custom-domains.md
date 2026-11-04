@@ -90,16 +90,16 @@ For applications with already registered OIDC callback URLs or browser bundles c
 - id: frontend
   kind: frontend
   containerPort: 3100
-  preview: { mode: origin, port: 13100 }
+  preview: { mode: origin, port: 13100, exclusive: true }
 - id: backend
   kind: api
   containerPort: 5000
-  preview: { mode: origin, port: 15000 }
+  preview: { mode: origin, port: 15000, exclusive: true }
 ```
 
 These fields are excerpts to add to runnable services. On domain-configured execution hosts they produce `https://<worker>.ts.net:13100` and `https://<worker>.ts.net:15000`, while session publication also uses HTTPS. Those services bypass central domain publication; unpinned services in the same profile still receive generated domains. `{{preview.<service>.origin}}` uses the selected address when available. `allowedHostEnv` receives the corresponding external hostname.
 
-Do not combine `preview.hostname` and `preview.port` on a service. An occupied explicit port fails instead of silently moving the application to an unregistered URL. The pinned pair is therefore limited to one stack per worker unless its ports, worker env URLs and CoreLayer registrations are changed together. Ports on a single hostname do not isolate cookies; distinct generated domains remain the default for concurrent previews and are required for separate broker registrations.
+A pinned port needs `exclusive: true`: X4 Control and `x4 registry validate` refuse `preview.port` without it, because it allows one stack of the profile per worker. Do not combine `preview.hostname` and `preview.port` on a service. An occupied explicit port fails instead of silently moving the application to an unregistered URL. The pinned pair is therefore limited to one stack per worker unless its ports, worker env URLs and CoreLayer registrations are changed together. Ports on a single hostname do not isolate cookies; distinct generated domains remain the default for concurrent previews and are required for separate broker registrations.
 
 The [K12 Prevent registry](../registry/k12-prevent.registry.yaml) runs the BTA product separately from the Mastra `k12` profile. It uses the application's direct `eduforge-shell` OIDC/PKCE and portal/BTA-token flow. CoreLayer must confirm the exact frontend-origin login/logout registrations, browser endpoint/CORS permissions and existing BTA authorization, and the worker needs its completed K12 testing bundle. Real K12/CoreLayer sign-in has not been verified. Follow the [K12 Prevent setup and testing guide](k12-prevent-setup.md) for the complete operator sequence and application acceptance checklist.
 
