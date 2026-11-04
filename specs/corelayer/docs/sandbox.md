@@ -72,6 +72,45 @@ a stack on a worker too.
 `repos.<id>.sessionSandbox`, with that id in `registryRepo`), or `template`
 (the templates file that ships with X4, or `X4_SESSION_SANDBOXES`).
 
+### Inspect output and X4 Code
+
+X4 Code's Sandbox panel reads `inspect`'s JSON with its `SandboxSnapshot`
+schema (X4Org/x4-code, `packages/contracts/src/sandbox.ts`) and refuses a
+snapshot it cannot decode, so the whole panel breaks on every devbox. That
+happened on 2026-11-04, when previews moved to `*.preview.x4app.dev` and X4 Code
+still accepted only `*.ts.net`.
+
+`test/fixtures/sandbox-inspect/` holds what `inspect` prints for each kind of
+stack: no stack yet, a running stack with pinned-port `*.ts.net` previews, one
+with `*.preview.x4app.dev` previews and named links, a stopped stack, and a
+Factory session's stack on the testbox worker, reachable and unreachable.
+`test/sandbox-inspect-fixtures.test.mjs` produces them with the real CLI and
+fails when its output no longer matches them. X4 Code keeps a copy and its CI
+decodes every file.
+
+When you change what `inspect` prints (a field, a status, a URL form):
+
+1. Regenerate the fixtures and review the diff:
+
+   ```bash
+   pnpm fixtures:sandbox-inspect
+   ```
+
+2. In an X4 Code checkout, copy them in and run its contract test. Change
+   `SandboxSnapshot` in the same X4 Code pull request if the test fails:
+
+   ```bash
+   node scripts/sync-sandbox-inspect-fixtures.ts --from /path/to/x4   # or --ref <branch> to read X4Org/x4 with gh
+   cd packages/contracts && pnpm exec vp test run --config ../../vite.config.ts src/sandbox.test.ts
+   ```
+
+3. Merge and release the X4 Code change before the x4 change reaches devboxes
+   or workers.
+
+Neither repository's CI can read the other, so nothing checks that the two
+copies agree. `node scripts/sync-sandbox-inspect-fixtures.ts --check` in X4
+Code compares them using your `gh` login.
+
 ### Where session stacks run
 
 By default `start` runs the stack on the execution model's sandbox worker
