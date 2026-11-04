@@ -49,26 +49,36 @@ The K12 owner runs the application tests. CoreLayer supports identity,
 authorization and roster issues; X4 supports startup and routing. Send private
 values to the operator through an approved private channel.
 
-## Exact URLs for dev04
+## Preview URLs
 
-This deployment example uses `dev04.x4app.dev` for SSH. Connect to Tailscale;
-the additional HTTPS service ports retain their Tailscale hostname:
+Every K12 Prevent sandbox gets its own HTTPS origins under `preview.x4app.dev`,
+so any number of stacks can share a worker. X4 picks them before the containers
+start and gives the frontend this sandbox's values:
 
-| Purpose | Exact URL |
+| Purpose | Value |
 | --- | --- |
-| K12 frontend | `https://x4-devbox-04.tail49b150.ts.net:13100` |
-| BTA API / `VITE_BTA_API_URL` | `https://x4-devbox-04.tail49b150.ts.net:15000` |
-| Login / `VITE_OIDC_REDIRECT_URI` | `https://x4-devbox-04.tail49b150.ts.net:13100/callback` |
-| Logout / `VITE_OIDC_POST_LOGOUT_REDIRECT_URI` | `https://x4-devbox-04.tail49b150.ts.net:13100/logout-callback` |
+| K12 frontend | `https://k12-prevent-k12-prevent-<sandbox>.preview.x4app.dev` |
+| BTA API / `VITE_BTA_API_URL` | `https://bta-api-k12-prevent-<sandbox>.preview.x4app.dev` |
+| Login / `VITE_OIDC_REDIRECT_URI` | `<frontend origin>/callback` |
+| Logout / `VITE_OIDC_POST_LOGOUT_REDIRECT_URI` | `<frontend origin>/logout-callback` |
 
-CoreLayer must confirm both callbacks on the existing testing `eduforge-shell`
-client, browser endpoint/CORS permissions and BTA issuer/audience/authorization.
-These callbacks belong to the frontend; they do not use `auth.x4app.dev`.
+`<sandbox>` is derived from the workspace id. `x4 preview status` and X4 Code's
+Sandbox panel show the actual URLs. Connect to Tailscale to open them.
 
-The fixed ports allow **one K12 Prevent stack per worker**. For another worker,
-update the bundle URLs and confirm its exact CoreLayer callbacks before starting.
-Change registry ports, bundle URLs and registrations together. If a port is
-occupied, use another worker or coordinate with the existing stack's owner.
+The worker must publish preview domains: `dev04.x4app.dev` and
+`test01.x4app.dev` (`x4-testbox-standard-1`) do. Add another worker with
+`deploy/domains/preview-add-worker.py`. Without it the frontend's URLs cannot
+be resolved and startup fails with "Preview origin bta-api is unavailable".
+
+Do not pin `preview.port` on these services. A pinned port is one fixed origin
+per worker, and the next sandbox fails with "The requested sandbox preview port
+is already in use."
+
+CoreLayer registers exact callbacks only, never wildcards. Real sign-in from a
+sandbox therefore needs that sandbox's callbacks on the testing `eduforge-shell`
+client, or the shared `auth.x4app.dev` broker (still in setup mode). CoreLayer
+must also confirm browser endpoint/CORS permissions and BTA
+issuer/audience/authorization. Until then, use bta-api's built-in tester sign-in.
 
 ## Install and validate the configuration
 
@@ -148,9 +158,9 @@ From a Tailscale-connected device, check both services:
 
 ```sh
 curl --fail --silent --show-error \
-  https://x4-devbox-04.tail49b150.ts.net:15000/health
+  https://bta-api-k12-prevent-<sandbox>.preview.x4app.dev/health
 curl --fail --silent --show-error --head \
-  https://x4-devbox-04.tail49b150.ts.net:13100/
+  https://k12-prevent-k12-prevent-<sandbox>.preview.x4app.dev/
 ```
 
 The K12 owner then tests with CoreLayer support:

@@ -9,7 +9,7 @@
 #   x4 registry validate --registry registry/k12-prevent.registry.yaml
 #   x4 workspace bootstrap --repo-set k12-prevent --registry registry/k12-prevent.registry.yaml
 #   x4 sandbox up --wait --wait-timeout-seconds 900   # from the ruunis-ui-modules entry
-#   x4 preview serve                                  # k12-prevent :13100, bta-api :15000
+#   x4 preview serve                                  # one https://*.preview.x4app.dev per service
 #
 # Every service is isolated: its own PostgreSQL 16 and Azurite, nothing shared
 # with staging. bta-api runs data migrations and background workers at startup,
@@ -21,16 +21,21 @@
 #   - AI, speech-to-text, email and Linear are real providers (testing keys).
 #     Mail goes to NOTIFICATION_EMAIL_TO / FEEDBACK_EMAIL_TO, which must be the
 #     team test inbox, never a real person (address still to be chosen).
-#   - One K12 Prevent sandbox per worker. Preview URLs are only assigned after
-#     the stack starts, but VITE_BTA_API_URL has to be bta-api's absolute URL
-#     when Vite starts. The preview ports are therefore pinned (preview.port),
-#     and the worker's env bundle holds the URLs those ports give on its host.
+#   - Needs a worker with preview domains (/etc/x4/preview-domains.json;
+#     deploy/domains/preview-add-worker.py). VITE_BTA_API_URL must be bta-api's
+#     absolute URL when Vite starts, and only generated domains are known
+#     before startup. Each sandbox gets its own https://*.preview.x4app.dev
+#     origins, so any number of K12 Prevent stacks share a worker. Do not pin
+#     preview.port: that gives one stack per worker and fails the next one
+#     with "preview port is already in use".
 #   - Sign-in needs an https K12 Prevent origin: oidc-client-ts needs a secure
 #     context for PKCE, and @maf/web-portal accepts only https (or loopback)
 #     OIDC URLs. It also requires both OIDC callbacks on the app's own origin,
 #     so VITE_OIDC_REDIRECT_URI / VITE_OIDC_POST_LOGOUT_REDIRECT_URI are
-#     <k12-prevent preview origin>/callback and /logout-callback, registered on
-#     the testing CoreLayer client. A relay on another origin fails that check.
+#     <k12-prevent preview origin>/callback and /logout-callback, set per
+#     sandbox below. CoreLayer registers exact callbacks only, so real sign-in
+#     needs each origin registered, or the auth.x4app.dev broker. A relay on
+#     another origin fails that check.
 version: 1
 
 repoSets:
@@ -209,11 +214,10 @@ sandboxProfiles:
           timeout: 5s
           retries: 20
         evidencePath: /health
-        # The browser calls bta-api directly (CORS is *). Pinned so the bundle's
-        # VITE_BTA_API_URL can name it.
+        # The browser calls bta-api directly (CORS is *) at its own generated
+        # origin, which the frontend gets as VITE_BTA_API_URL.
         preview:
           mode: origin
-          port: 15000
 
       # BTA served from source with hot reload (the dev:k12 setup). Vite is
       # started directly because `dev` binds 127.0.0.1, which a published
@@ -234,6 +238,12 @@ sandboxProfiles:
           VITE_SUITE_ENVIRONMENT: local
           VITE_OIDC_CLIENT_ID: eduforge-shell
           VITE_OIDC_SCOPE: openid profile email offline_access eduforge-portal-access
+          # This sandbox's own origins, resolved before startup. They override
+          # the shared bundle, so concurrent sandboxes never share an API or
+          # login callback.
+          VITE_BTA_API_URL: "{{preview.bta-api.origin}}"
+          VITE_OIDC_REDIRECT_URI: "{{preview.k12-prevent.origin}}/callback"
+          VITE_OIDC_POST_LOGOUT_REDIRECT_URI: "{{preview.k12-prevent.origin}}/logout-callback"
           # The bundle is shared with bta-api; the frontend gets none of its
           # server secrets. Keep in sync with envBundles.k12-prevent-testing.required.
           OPENAI_API_KEY: ""
@@ -253,7 +263,6 @@ sandboxProfiles:
         testerPath: /
         preview:
           mode: origin
-          port: 13100
 
 envBundles:
   # Key names only. Values live in the worker's file, never production ones.
@@ -281,11 +290,8 @@ envBundles:
       # Frontend, testing CoreLayer.
       - VITE_OIDC_ISSUER
       - VITE_TOKEN_EXCHANGE_URL
-      # <k12-prevent preview origin>/callback and /logout-callback.
-      - VITE_OIDC_REDIRECT_URI
-      - VITE_OIDC_POST_LOGOUT_REDIRECT_URI
-      # bta-api's preview origin on this worker (port 15000).
-      - VITE_BTA_API_URL
+      # VITE_BTA_API_URL and the OIDC callbacks come from each sandbox's own
+      # preview origins (sandboxProfiles.k12-prevent), not from this bundle.
     optional:
       - RESEND_FROM_EMAIL
     forbiddenPatterns:
