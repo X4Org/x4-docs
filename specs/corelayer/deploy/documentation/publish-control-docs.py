@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish a static /x4/ docs build on Control without restarting services."""
+"""Publish the Docs service, a static /docs/ build, on Control without restarting services."""
 
 import argparse
 from contextlib import contextmanager
@@ -17,7 +17,7 @@ import uuid
 
 
 DEFAULT_ROOT = Path("/srv/x4/documentation")
-DEFAULT_MOUNT = Path("/srv/x4/fleet/dist/x4")
+DEFAULT_MOUNT = Path("/srv/x4/fleet/dist/docs")
 MANIFEST = ".x4-docs-release.json"
 REQUIRED = (
     "index.html",
@@ -27,6 +27,8 @@ REQUIRED = (
     "specs/corelayer/docs/specs/corelayer-preview-client.example.json",
     "operations/k12-prevent-setup/index.html",
     "operations/documentation-publication/index.html",
+    # The X4 Code section; its front page says when X4 Code's own pages were skipped.
+    "x4-code/index.html",
 )
 
 
@@ -120,8 +122,12 @@ def inspect_build(build, managed=False):
     if any(name not in files for name in REQUIRED) or not any(name.startswith("assets/") for name in files):
         raise PublicationError("Build is missing the documentation page, assets or spec downloads.")
     index = (build / "index.html").read_text()
-    if "docusaurus" not in index.lower() or "/x4/assets/" not in index:
-        raise PublicationError("Expected a Docusaurus build with base URL /x4/.")
+    if "docusaurus" not in index.lower() or "/docs/assets/" not in index:
+        raise PublicationError("Expected a Docusaurus build with base URL /docs/ (X4_DOCS_TARGET=control).")
+    if "x4-control-bar" not in index:
+        raise PublicationError("Expected Control's shared header; build with X4_DOCS_TARGET=control.")
+    if "X4_CODE_DOCS=skip" in (build / "x4-code/index.html").read_text():
+        raise PublicationError("Build skipped X4 Code's own pages (X4_CODE_DOCS=skip); build with access to X4Org/x4-code.")
     if "CoreLayer" not in (build / REQUIRED[1]).read_text():
         raise PublicationError("Authentication reference page is not the expected specification.")
     json.loads((build / REQUIRED[4]).read_text())
@@ -289,7 +295,7 @@ def rollback(record_path, root=DEFAULT_ROOT, mount=DEFAULT_MOUNT):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     action = parser.add_mutually_exclusive_group(required=True)
-    action.add_argument("--build", type=Path, help="Complete static docs output built for /x4/")
+    action.add_argument("--build", type=Path, help="Complete static docs output built for Control (X4_DOCS_TARGET=control, base URL /docs/)")
     action.add_argument("--attach-existing", action="store_true", help="Recreate the mount for the active, verified release")
     action.add_argument("--rollback", type=Path, help="Rollback record returned by a publication")
     parser.add_argument("--release", help="Immutable release identifier (required with --build or --attach-existing)")
