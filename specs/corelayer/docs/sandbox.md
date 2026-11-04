@@ -643,9 +643,9 @@ x4 sandbox destroy --force
 Every sandbox `x4 sandbox up` starts is stamped with a `com.x4.owner` container
 label, surfaced by `x4 sandbox list`.
 
-- **`--owner <label>`** — the label, used verbatim. The x4-control-center
-  dashboard passes the operator's **GitHub login** here (from its "Sign in with
-  GitHub"), so a dashboard-run sandbox is attributed to a person.
+- **`--owner <label>`** — the label, used verbatim. Pass a developer or
+  automation identity when starting a sandbox from the CLI to attribute it to
+  that owner.
 - **no `--owner`** — the `machine-id` strategy: `<os-user>@<first 8 chars of a
   UUID persisted at `~/.x4/machine-id`>`. Identifies the machine, not a person —
   the fallback for a plain CLI `sandbox up`.
@@ -655,8 +655,8 @@ Also stamped: `com.x4.created-at`, and `com.x4.expires-at` (unless
 
 ## Concurrent previews and ports
 
-Two workspaces can preview at the same time on one machine. Three separate
-layers pick ports, and each isolates itself:
+Two workspaces can preview at the same time on one machine. The CLI's two
+preview paths select ports independently:
 
 **Sandboxed services (`x4 sandbox up`).** Host ports are derived from a hash of
 the workspace id (`sandboxPorts()`), starting at `14000 + offset`, and any port
@@ -677,18 +677,16 @@ server on it via `$PORT`, and advertises the resolved port in the tester URL and
 > When a command ignores `$PORT`, X4 prints a `warn` line and the server keeps
 > its hard-coded port, so two such workspaces still collide.
 
-**Dashboard preview proxy (x4-control-center).** Each project's tailnet preview
-proxy binds its own port, `8080 + hash(projectId) % 400` (overridable with
-`"previewProxyPort"` in `config/projects.json`), so two projects' Live Preview
-panels never contend for one port and one project's teardown never kills
-another's proxy.
+The standalone `x4-control-center` also had a per-project dashboard preview
+proxy. That behavior is historical; see [repository
+consolidation](x4-repository-consolidation.md) for its retirement. The CLI port
+rules above describe the current commands.
 
 ## Last-known-good profiles
 
-Every time `x4 sandbox up --wait` (or the control-center self-heal loop) sees a
-profile's services reach readiness, X4 snapshots that exact profile to
-`.x4/last-good-profiles/<profileId>.json`. This survives `sandbox destroy
---prune-artifacts` (it lives outside `.x4/sandbox/`).
+Every time `x4 sandbox up --wait` sees a profile's services reach readiness,
+X4 snapshots that exact profile to `.x4/last-good-profiles/<profileId>.json`.
+This survives `sandbox destroy --prune-artifacts` (it lives outside `.x4/sandbox/`).
 
 ```bash
 x4 sandbox profile show-last-good --profile local-preview

@@ -100,9 +100,9 @@ bundle). The human output is unchanged when `--json` is absent.
 ### `x4 env install-bundle --local`
 
 `--local` writes the sanitized bundle directly to `bundle.path` on the current
-host — no execution model, no worker resolution, no SSH. This is the path the
-x4-control-center dashboard uses because it runs on the same host as the
-sandboxes. `--local` and `--target` are mutually exclusive.
+host — no execution model, no worker resolution, no SSH. Use it to prepare a
+file-backed bundle on the host that will run the tests or sandbox services.
+`--local` and `--target` are mutually exclusive.
 
 It prints the same lead lines as the SSH path (`env bundle:`, `registry:`,
 `source:`, `target: local`, `destination:`, `keys:`, `removed forbidden-key
