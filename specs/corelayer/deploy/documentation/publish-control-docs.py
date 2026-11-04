@@ -119,6 +119,11 @@ def inspect_build(build, managed=False):
                 raise PublicationError("Build contains a reserved publisher manifest.")
             continue
         files[relative] = hashlib.sha256(path.read_bytes()).hexdigest()
+    # A published release is checked against its manifest only. The content rules below are
+    # for new builds, so a release published under older rules can still be replaced or
+    # rolled back to.
+    if managed:
+        return files
     if any(name not in files for name in REQUIRED) or not any(name.startswith("assets/") for name in files):
         raise PublicationError("Build is missing the documentation page, assets or spec downloads.")
     index = (build / "index.html").read_text()

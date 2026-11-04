@@ -49,9 +49,12 @@ ssh root@control01.x4app.dev \
 The publisher refuses a build without base URL `/docs/` or without Control's
 header, so a public-site build cannot be published here by mistake.
 
-Moving from `/x4/`: the first `/docs/` publication creates `dist/docs`.
-Control's server redirects `/x4/` before it reads static files, so the old
-`dist/x4` link is no longer served; remove it after checking the new address.
+Moving from `/x4/` was a one-time step, done on control-1 on 2026-11-04 with
+the backup in `/srv/x4/backups/control-before-35b20d1-20261104T124845Z`: holding
+`deploy.lock`, `dist/docs` was linked to `documentation/current` and
+`active.json`'s `mount` changed to `/srv/x4/fleet/dist/docs`. Control's server
+redirects `/x4/` before it reads static files, so the old `dist/x4` link is no
+longer served and is removed after the new address is checked.
 
 Use the machine's configured trusted SSH host key; do not disable host-key
 verification. When the machine is already trusted under its original name,
