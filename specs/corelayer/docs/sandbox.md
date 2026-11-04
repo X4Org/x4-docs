@@ -171,6 +171,63 @@ the others. A stack that changed in the last hour (`--grace-minutes`) or is in
 the middle of another operation is left alone. Its JSON report and the hourly
 timer are described in [deploy/testbox](../deploy/testbox/README.md).
 
+### Preview smoke test
+
+`x4 sandbox smoke` checks the whole path from starting a session stack to its
+previews, the way a person in X4 Code uses it. Run it from a devbox (or any
+host with SSH access to the worker) after a deploy that touches session stacks,
+and a timer runs it daily ([deploy/preview-smoke](../deploy/preview-smoke/README.md)):
+
+```bash
+scripts/preview-smoke.sh                # keeps the summary in ~/.local/state/x4/preview-smoke
+x4 sandbox smoke --preview-sudo         # the same, summary on stdout
+x4 sandbox smoke --target x4-testbox-standard-2
+```
+
+It makes two throwaway checkouts of the `smoke` profile
+([registry/preview-smoke.sandboxes.yaml](../registry/preview-smoke.sandboxes.yaml),
+files in [examples/preview-smoke](../examples/preview-smoke/README.md)): a static
+`web` service and an `app` whose env is `{{preview.web.origin}}` and
+`{{preview.app.origin}}`. Then it:
+
+1. starts both at once with `x4 sandbox session start --entry <checkout> --profile smoke`,
+   the command X4 Code runs, on the execution model's sandbox worker
+   (`--target` picks another). `--cli` chooses the x4 that runs these commands:
+   by default `X4_SANDBOX_CLI`, the one X4 Code runs, else the x4 running the smoke;
+2. runs `inspect` on both and decodes the whole output as X4 Code does, with
+   a copy of its contract ([src/x4-code-sandbox-contract.ts](../src/x4-code-sandbox-contract.ts));
+3. fetches every preview URL, preview link and health path over HTTPS, and
+   checks that each page belongs to its own checkout, that the two stacks have
+   different origins, and that the app's env holds its own stack's origins;
+4. stops both, checks that their previews stop answering, and deletes the
+   worker's copies (`x4 sandbox stacks delete`) so Control's Previews view does
+   not keep them. This runs even after a failure or Ctrl-C. Each stack also
+   expires after 60 minutes (`--ttl-minutes`) in case cleanup cannot reach the
+   worker.
+
+It prints a JSON summary (`ok`, every check, `failures`) and exits 1 when any
+check fails. The profiles come only from the smoke file (`X4_SESSION_SANDBOXES`),
+so X4 Control's registry is neither read nor changed. The profile has no env
+bundle and no secrets. A green run takes under a minute.
+
+The smoke catches the failures of 2026-11-04: two stacks of one profile
+colliding on a worker ("The requested sandbox preview port is already in use"),
+and preview URLs that X4 Code cannot decode, which make its panel say "Update the
+X4 sandbox tools on this environment." while the stack runs. A test also
+refuses a pinned `preview.port` in any session profile shipped in `registry/`.
+When X4 Code changes `packages/contracts/src/sandbox.ts`, update the contract copy.
+Shared inspect fixtures from X4 Code will replace it.
+
+Run it after:
+
+| Deploy | Why |
+| --- | --- |
+| A worker's x4 (`scripts/update-worker.sh`) or a new preview-domain worker | The worker starts the stacks and publishes their routes. Pass `--target` for a new worker. |
+| A devbox bundle | It carries the x4 that X4 Code runs. Run from a devbox that has it. |
+| An X4 Code release | It decodes `inspect`. Update the contract copy first if its contract changed. |
+| Control's web server, or a registry apply that edits `sessionSandbox` or env bundles | Control lists and stops stacks. The smoke shows that the path to the worker still works; check the changed profiles themselves in X4 Code. |
+| Preview domain routing (`deploy/domains`) | Every preview URL goes through it. |
+
 ### Profiles X4 offers every session
 
 X4 lists sandbox profiles per repository, matched by the checkout's `origin`
