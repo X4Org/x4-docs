@@ -54,6 +54,47 @@ sudo systemctl restart x4-preview-auth-gateway.service
 The gateway does not log request URLs, callback codes, handoff tickets or tokens.
 Avoid adding query-string access logging at the proxy.
 
+## Run the callback relay
+
+Relay mode gives applications that keep their own public OIDC client, such as
+K12 Prevent's `eduforge-shell`, one fixed pair of callbacks for every preview,
+with no change to the application. It needs no CoreLayer client or secret. See
+the [integration contract](../../../docs/specs/corelayer-preview-auth-integration-v1.md#direct-oidc-through-the-x4-callback-relay).
+
+1. Install a release containing `relay.mjs` (see
+   [Release installation](#release-installation-and-rollback)).
+2. In `/etc/x4-auth/gateway.env`, set:
+
+   ```dotenv
+   X4_AUTH_MODE=relay
+   X4_AUTH_RELAY_PROVIDERS={"corelayer-testing":{"issuer":"https://oidc-dev-core.r2practice.com","tokenExchange":"<testing token exchange URL>"}}
+   ```
+
+   Keep `X4_AUTH_BASE_URL`, `LISTEN_HOST` and `LISTEN_PORT`. The registration
+   token is ignored, and OIDC client settings are refused. Optionally set
+   `X4_AUTH_RELAY_STATE_KEY` (32+ random characters) so restarts don't break
+   sign-ins in progress, and `X4_AUTH_RELAY_HOST_SUFFIX` (default
+   `.preview.x4app.dev`). Leave out `tokenExchange` until CoreLayer supplies it;
+   `/exchange` then returns 404.
+3. Check and restart, then verify from a Tailscale device:
+
+   ```sh
+   sudo systemd-run --quiet --wait --pipe --collect \
+     --property=User=x4-auth --property=Group=x4-auth \
+     --property=EnvironmentFile=/etc/x4-auth/gateway.env \
+     /usr/bin/node /srv/x4/preview-auth-gateway/current/gateway-cli.mjs --check
+   sudo systemctl restart x4-preview-auth-gateway.service
+   node verify-deployment.mjs --mode relay
+   ```
+
+The relay calls the provider's discovery, token and token exchange endpoints
+from the control server, so it needs outbound HTTPS to them. It keeps no state
+apart from a five-minute discovery cache. Token requests and responses pass
+through it; it does not log request URLs or bodies. CoreLayer must add
+`https://auth.x4app.dev/callback` and `https://auth.x4app.dev/logout-callback`
+to the application's testing client before real sign-in works. To roll back,
+set `X4_AUTH_MODE=setup`, remove `X4_AUTH_RELAY_PROVIDERS` and restart.
+
 ## Activate real CoreLayer authentication
 
 Agree the [official integration proposal](../../../docs/specs/corelayer-preview-auth-integration-v1.md)
@@ -132,7 +173,7 @@ setup-only release is unchanged by the source-level hardening in this example.
 
 Extract a tested release under
 `/srv/x4/preview-auth-gateway/releases/<release-id>/`, containing `gateway.mjs`,
-`service.mjs`, `gateway-cli.mjs`, both package files, and `deploy/`. Run its
+`relay.mjs`, `service.mjs`, `gateway-cli.mjs`, both package files, and `deploy/`. Run its
 [`install-service.sh`](install-service.sh) as root. The installer preserves an
 existing private environment file and installs the systemd unit. It does not
 change DNS or ingress. Preview/session state is lost when the service restarts.

@@ -1,8 +1,9 @@
 # K12 Prevent preview setup and testing
 
 Run the K12 Prevent frontend and BTA API on an X4 worker using their existing
-direct CoreLayer login. The shared broker is optional and requires a separate
-integration; see the [authentication specification](specs/corelayer-preview-auth-integration-v1.md).
+direct CoreLayer login. Every sandbox signs in through X4's sign-in relay at
+`https://auth.x4app.dev`, with no change to the application; see the
+[authentication specification](specs/corelayer-preview-auth-integration-v1.md).
 
 This is the BTA product in `ruunis-ui-modules` and `BTA-POC`. The Mastra `k12`
 example uses a different profile and environment bundle.
@@ -38,8 +39,9 @@ defines the required keys; do not substitute `mastra-testing`.
 
 | Configuration | Owner |
 | --- | --- |
-| `OIDC_ISSUER`, `EXPECTED_AUDIENCE`, `VITE_OIDC_ISSUER`, `VITE_TOKEN_EXCHANGE_URL` | CoreLayer with the K12 owner: confirm the testing client and BTA contract |
-| Login/logout callbacks, browser origins/CORS, test account and tenant permissions | CoreLayer with the K12 owner |
+| `OIDC_ISSUER`, `EXPECTED_AUDIENCE` | CoreLayer with the K12 owner: confirm the testing client and BTA contract |
+| The two `auth.x4app.dev` callbacks on `eduforge-shell`, the testing token exchange URL, test account and tenant permissions | CoreLayer with the K12 owner |
+| The relay's provider settings on `auth.x4app.dev` | X4 operator |
 | `BTA_CONTRACTS_TOKEN` with read access to private `X4Org/bta-contracts` | K12/repository credential owner |
 | `OPENAI_API_KEY`, `ELEVENLABS_API_KEY`, `RESEND_API_KEY`, `LINEAR_API_KEY` | K12/provider credential owners: supply approved testing keys |
 | `NOTIFICATION_EMAIL_TO`, `FEEDBACK_EMAIL_TO`; optional `RESEND_FROM_EMAIL` | K12 owner: choose the test inbox and approved sender |
@@ -61,6 +63,8 @@ start and gives the frontend this sandbox's values:
 | BTA API / `VITE_BTA_API_URL` | `https://bta-api-k12-prevent-<sandbox>.preview.x4app.dev` |
 | Login / `VITE_OIDC_REDIRECT_URI` | `<frontend origin>/callback` |
 | Logout / `VITE_OIDC_POST_LOGOUT_REDIRECT_URI` | `<frontend origin>/logout-callback` |
+| Issuer / `VITE_OIDC_ISSUER` | `https://auth.x4app.dev/p/corelayer-testing` (the same for every sandbox) |
+| Token exchange / `VITE_TOKEN_EXCHANGE_URL` | `https://auth.x4app.dev/p/corelayer-testing/exchange` (the same for every sandbox) |
 
 `<sandbox>` is derived from the workspace id. `x4 preview status` and X4 Code's
 Sandbox panel show the actual URLs. Connect to Tailscale to open them.
@@ -74,11 +78,34 @@ Do not pin `preview.port` on these services. A pinned port is one fixed origin
 per worker, and the next sandbox fails with "The requested sandbox preview port
 is already in use."
 
-CoreLayer registers exact callbacks only, never wildcards. Real sign-in from a
-sandbox therefore needs that sandbox's callbacks on the testing `eduforge-shell`
-client, or the shared `auth.x4app.dev` broker (still in setup mode). CoreLayer
-must also confirm browser endpoint/CORS permissions and BTA
-issuer/audience/authorization. Until then, use bta-api's built-in tester sign-in.
+## Sign-in callbacks
+
+CoreLayer registers exact callbacks only, never wildcards. So that sandboxes
+don't each need their own registration, the frontend signs in through X4's
+relay: its `VITE_OIDC_ISSUER` is `https://auth.x4app.dev/p/corelayer-testing`.
+The relay serves CoreLayer's discovery document with its own sign-in, token and
+sign-out endpoints, and CoreLayer only ever sees:
+
+```text
+Login redirect:       https://auth.x4app.dev/callback
+Post-logout redirect: https://auth.x4app.dev/logout-callback
+```
+
+The relay returns each sign-in to the sandbox that started it, and forwards the
+code exchange, refreshes and the token exchange to CoreLayer server-side, so
+CoreLayer needs no CORS policy for preview origins. The frontend code is
+unchanged and keeps `eduforge-shell`, PKCE, its tokens and BTA calls. The relay
+holds no CoreLayer client or secret.
+
+Real sign-in needs:
+
+- The relay running in `X4_AUTH_MODE=relay` with the `corelayer-testing`
+  provider and its token exchange URL
+  ([gateway runbook](../examples/preview-auth-gateway/deploy/README.md#run-the-callback-relay)).
+- CoreLayer adds both callbacks above to the testing `eduforge-shell` client.
+- CoreLayer confirms BTA issuer, audience and authorization.
+
+Until then, use bta-api's built-in tester sign-in.
 
 ## Install and validate the configuration
 
@@ -165,8 +192,10 @@ curl --fail --silent --show-error --head \
 
 The K12 owner then tests with CoreLayer support:
 
-1. Sign in through the frontend with an approved testing account. Confirm the
-   return to its `/callback`, bypassing the shared broker.
+1. Sign in through the frontend with an approved testing account. Confirm
+   CoreLayer returns to `https://auth.x4app.dev/callback` and the relay sends
+   you on to this sandbox's `/callback`. Sign in from a second sandbox at the
+   same time and confirm each returns to its own origin.
 2. Check the user/tenant, portal token exchange and authorized BTA requests.
    Browser requests must succeed without CORS errors.
 3. Open a seeded case and test the intended workflow. Email actions must use

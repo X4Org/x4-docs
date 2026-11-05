@@ -30,12 +30,17 @@
 #     with "preview port is already in use".
 #   - Sign-in needs an https K12 Prevent origin: oidc-client-ts needs a secure
 #     context for PKCE, and @maf/web-portal accepts only https (or loopback)
-#     OIDC URLs. It also requires both OIDC callbacks on the app's own origin,
-#     so VITE_OIDC_REDIRECT_URI / VITE_OIDC_POST_LOGOUT_REDIRECT_URI are
-#     <k12-prevent preview origin>/callback and /logout-callback, set per
-#     sandbox below. CoreLayer registers exact callbacks only, so real sign-in
-#     needs each origin registered, or the auth.x4app.dev broker. A relay on
-#     another origin fails that check.
+#     OIDC URLs. It requires both OIDC callbacks on the app's own origin, so
+#     VITE_OIDC_REDIRECT_URI / VITE_OIDC_POST_LOGOUT_REDIRECT_URI are each
+#     sandbox's own /callback and /logout-callback. CoreLayer registers exact
+#     callbacks only, so the frontend's issuer is X4's relay
+#     (https://auth.x4app.dev/p/corelayer-testing, X4_AUTH_MODE=relay). The relay
+#     serves CoreLayer's discovery with its own authorize/token/logout endpoints,
+#     gives CoreLayer the fixed https://auth.x4app.dev/callback and
+#     /logout-callback, and returns each sign-in to the sandbox that started it.
+#     It also forwards the token exchange, so CoreLayer needs no preview CORS.
+#     The app is unchanged: eduforge-shell, PKCE, its tokens and BTA calls.
+#     CoreLayer must add both auth.x4app.dev callbacks to eduforge-shell.
 version: 1
 
 repoSets:
@@ -240,10 +245,14 @@ sandboxProfiles:
           VITE_OIDC_SCOPE: openid profile email offline_access eduforge-portal-access
           # This sandbox's own origins, resolved before startup. They override
           # the shared bundle, so concurrent sandboxes never share an API or
-          # login callback.
+          # login callback route.
           VITE_BTA_API_URL: "{{preview.bta-api.origin}}"
           VITE_OIDC_REDIRECT_URI: "{{preview.k12-prevent.origin}}/callback"
           VITE_OIDC_POST_LOGOUT_REDIRECT_URI: "{{preview.k12-prevent.origin}}/logout-callback"
+          # Sign-in and the token exchange go through X4's relay, which gives
+          # CoreLayer its fixed callbacks and returns to this sandbox.
+          VITE_OIDC_ISSUER: https://auth.x4app.dev/p/corelayer-testing
+          VITE_TOKEN_EXCHANGE_URL: https://auth.x4app.dev/p/corelayer-testing/exchange
           # The bundle is shared with bta-api; the frontend gets none of its
           # server secrets. Keep in sync with envBundles.k12-prevent-testing.required.
           OPENAI_API_KEY: ""
@@ -287,11 +296,9 @@ envBundles:
       # The team test inbox, never a real person.
       - NOTIFICATION_EMAIL_TO
       - FEEDBACK_EMAIL_TO
-      # Frontend, testing CoreLayer.
-      - VITE_OIDC_ISSUER
-      - VITE_TOKEN_EXCHANGE_URL
-      # VITE_BTA_API_URL and the OIDC callbacks come from each sandbox's own
-      # preview origins (sandboxProfiles.k12-prevent), not from this bundle.
+      # The frontend's VITE_* settings come from sandboxProfiles.k12-prevent:
+      # each sandbox's own preview origins, and X4's sign-in relay for the
+      # issuer and token exchange. None of them are in this bundle.
     optional:
       - RESEND_FROM_EMAIL
     forbiddenPatterns:

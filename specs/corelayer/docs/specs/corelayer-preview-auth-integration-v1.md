@@ -5,8 +5,8 @@
 | Document | Value |
 | --- | --- |
 | ID | X4-CORELAYER-AUTH-001 |
-| Version | 1.3 |
-| Date | 2026-10-28 |
+| Version | 1.4 |
+| Date | 2026-11-05 |
 | Status | Integration contract for joint review; real-provider acceptance pending |
 | Owners | X4: gateway, preview routing and lifecycle. CoreLayer: identity client and downstream authorization contract. Each application team: application session and any API integration. |
 | Scope | Project-agnostic authentication for non-production X4 previews using CoreLayer. K12 Prevent is an illustrative consumer. |
@@ -15,14 +15,14 @@ This X4 proposal replaces earlier design discussion. It is not CoreLayer approva
 
 ## Project-agnostic scope
 
-X4 preview routing supports two login contracts: keep the application's direct OIDC integration, or adopt the shared broker and session handoff. Either can serve any project.
+X4 preview routing supports three login contracts: keep the application's direct OIDC integration with its own callbacks, keep it but return through X4's fixed callback relay, or adopt the shared broker and session handoff. Any of them can serve any project.
 
-| Concern | Direct application OIDC | X4 broker/session handoff |
-| --- | --- | --- |
-| OAuth client and callback owner | Application's existing client; exact callbacks on its preview origin | Dedicated confidential broker client; fixed `auth.x4app.dev` callbacks |
-| Application integration | Existing OIDC/PKCE and API-token flow | Receiving backend/BFF adapter and application-session mapping |
-| Stable preview addresses | Generated preview domains or explicit worker HTTPS ports; exact callbacks registered for each selected origin | Per-workspace HTTPS domains support separate cookie hostnames and concurrent previews |
-| Portal/BTA access | Existing application exchange and permitted bearer-token contract | Additional server-side API adapter and CoreLayer authorization agreement required |
+| Concern | Direct application OIDC | Direct OIDC through the X4 callback relay | X4 broker/session handoff |
+| --- | --- | --- | --- |
+| OAuth client and callback owner | Application's existing client; exact callbacks on its preview origin | Application's existing public client; fixed `auth.x4app.dev` callbacks | Dedicated confidential broker client; fixed `auth.x4app.dev` callbacks |
+| Application integration | Existing OIDC/PKCE and API-token flow | No code change; issuer (and token exchange URL) set to the relay | Receiving backend/BFF adapter and application-session mapping |
+| Stable preview addresses | Generated preview domains or explicit worker HTTPS ports; exact callbacks registered for each selected origin | Generated `*.preview.x4app.dev` domains; no per-preview registration | Per-workspace HTTPS domains support separate cookie hostnames and concurrent previews |
+| Portal/BTA access | Existing application exchange and permitted bearer-token contract | Existing tokens and exchange; the relay forwards token and exchange requests server-side | Additional server-side API adapter and CoreLayer authorization agreement required |
 
 Sections 4–6 define the broker protocol. Direct OIDC needs no broker registration or receiving adapter. Both contracts require application access control and real-provider testing. Broker adopters need a backend session layer or another explicitly designed receiving adapter.
 
@@ -58,7 +58,31 @@ Applications may keep their existing CoreLayer client, browser PKCE and permitte
 
 CoreLayer MUST register exact application login/logout callbacks and permit its required browser endpoints, origins and CORS. Existing API issuer, audience, scope/tenant and authorized-client restrictions still apply. Agree any `offline_access`, refresh and logout behavior with CoreLayer. Publishing a route grants no permissions.
 
-Direct login uses application callbacks, not `auth.x4app.dev`. Broker codes, identities or sessions cannot simply be passed into the application's OIDC library. Test each application with the real provider.
+Direct login uses application callbacks, not `auth.x4app.dev`, unless it adopts the callback relay below. Broker codes, identities or sessions cannot simply be passed into the application's OIDC library. Test each application with the real provider.
+
+### Direct OIDC through the X4 callback relay
+
+An application keeping direct OIDC may return through X4's fixed callbacks instead of registering every preview origin. The application's code does not change: X4 sets its issuer to the relay. CoreLayer adds two exact callbacks to the application's existing non-production public client:
+
+| Client setting | Added value |
+| --- | --- |
+| `redirect_uris` | `https://auth.x4app.dev/callback` |
+| `post_logout_redirect_uris` | `https://auth.x4app.dev/logout-callback` |
+
+The preview's issuer is `https://auth.x4app.dev/p/<provider>`, for example `/p/corelayer-testing`. Its discovery document is CoreLayer's, with the real `issuer` and `jwks_uri`, and with `authorization_endpoint`, `token_endpoint` and `end_session_endpoint` on the relay. The flow:
+
+1. The application sends its normal authorization request, with its own callback `https://<preview>/callback`, PKCE challenge, nonce and state, to the relay's `/authorize`.
+2. The relay requires `response_type=code`, query response mode, PKCE S256 and a state, and a callback on `https://<one DNS label>.preview.x4app.dev` with no port or query. It replaces the callback with `https://auth.x4app.dev/callback`, wraps the preview callback and the original state in a signed state that expires after 30 minutes, and redirects to CoreLayer with every other parameter unchanged.
+3. CoreLayer returns the browser to `https://auth.x4app.dev/callback?code=…&state=…`. The relay checks the signature and expiry, and answers `303` to the preview callback with the original state and the rest of the query unchanged. A forged, expired or unknown state gets `400`, and no code or state is echoed.
+4. The application redeems the code at the relay's `/token` with its PKCE verifier and its own callback. The relay accepts only `authorization_code` and `refresh_token` grants from a preview `Origin` without client credentials, swaps the callback back to `https://auth.x4app.dev/callback`, and forwards the request to CoreLayer server-side. The response passes back unchanged with CORS for that preview.
+5. Sign-out goes through the relay's `/logout` and `/logout-callback` the same way. If CoreLayer omits `state` on return, the relay shows a signed-out page.
+6. Optionally, the relay forwards the application's token exchange (`/p/<provider>/exchange`, token-exchange grant only) server-side to the configured upstream exchange endpoint.
+
+The relay holds no client secret and stores nothing; it does not log requests. Tokens pass through it on the token and exchange requests, so X4 is on the token path for previews using it. Because CoreLayer is called server-side, it needs no CORS policy for preview origins. CoreLayer still sees every request with the application's own client ID.
+
+Registering the relay callbacks is equivalent to registering every `*.preview.x4app.dev` origin on that client. Any preview can start a sign-in that returns to itself, exactly as it could with its own registered callbacks. PKCE stops a different origin redeeming a code issued to another browser's transaction. MUST NOT register the relay callbacks on a production client.
+
+The relay runs as `X4_AUTH_MODE=relay` of the [gateway](../../examples/preview-auth-gateway/relay.mjs). It is a separate mode from the broker: one deployment runs one mode.
 
 ### Generic direct-login example
 
@@ -81,7 +105,7 @@ Each new workspace needs its own direct callback registrations. Fixed worker por
 
 ### Application-specific setup: K12 Prevent
 
-The [K12 registry](../../registry/k12-prevent.registry.yaml) keeps its `eduforge-shell` OIDC/PKCE and portal/BTA-token flow. Fixed frontend/API ports preserve its URLs; BTA issuer, audience, scope/tenant and `SHELL_ALLOWED_AZP` checks still apply. The [K12 setup guide](../k12-prevent-setup.md) covers exact URLs, private configuration, ownership, startup and testing. Real K12/CoreLayer/BTA sign-in remains unverified. Broker adoption is optional.
+The [K12 registry](../../registry/k12-prevent.registry.yaml) keeps its `eduforge-shell` OIDC/PKCE and portal/BTA-token flow and returns through the callback relay: its `VITE_OIDC_ISSUER` and `VITE_TOKEN_EXCHANGE_URL` point at `https://auth.x4app.dev/p/corelayer-testing`. Each sandbox gets generated origins, so stacks share a worker; BTA issuer, audience, scope/tenant and `SHELL_ALLOWED_AZP` checks still apply. The [K12 setup guide](../k12-prevent-setup.md) covers URLs, private configuration, ownership, startup and testing. Real K12/CoreLayer/BTA sign-in remains unverified.
 
 ## 2. Architecture and ownership
 
@@ -158,7 +182,7 @@ Register only browser-facing applications with a receiving auth adapter. Custom 
 
 On a domain-configured worker, an explicit `preview: { mode: origin, port: 13100 }` selects `https://<worker>.ts.net:13100`. It bypasses central domain registration and fails if occupied. Do not combine `preview.hostname` and `preview.port`. Mixed profiles can use pinned and generated origins together.
 
-K12's fixed frontend/API ports preserve its bundle URLs and allow one stack per worker. Change ports, bundle URLs and CoreLayer registrations together. Ports do not isolate cookies. The broker rejects registrations sharing a hostname: use distinct generated domains for concurrent broker previews and review direct-mode cookie/token behavior.
+Fixed ports preserve an application's URLs but allow one stack per worker. Change ports, bundle URLs and CoreLayer registrations together. Ports do not isolate cookies. K12 Prevent no longer pins ports; it uses generated domains and the callback relay. The broker rejects registrations sharing a hostname: use distinct generated domains for concurrent broker previews and review direct-mode cookie/token behavior.
 
 `{{preview.<service>.origin}}` follows the selected address, including a resolvable pinned worker origin. Unpinned browser services use generated domains by default.
 
@@ -284,7 +308,8 @@ Ingress state persists separately, without an independent abandoned-worker lease
 | Registry `preview.hostname`, scoped origin references | Implemented | Install a compatible CLI on every worker using these registry fields |
 | Dynamic private HTTPS preview routing | Implemented | Configure worker domain publishing and Control ingress; routing checks do not verify application sign-in |
 | Explicit `preview.port` on domain-configured workers; mixed pinned/generated routing | Implemented | Use one fixed-port stack per worker; verify mixed routing and occupied-port rejection |
-| Direct application OIDC with the K12 Prevent registry | Existing application flow retained by the registry | Requires the private testing bundle and exact CoreLayer registrations; real K12/CoreLayer sign-in, browser exchange/CORS and BTA permissions remain unverified |
+| Direct application OIDC with the K12 Prevent registry | Existing application flow retained by the registry, returning through the callback relay | Requires the private testing bundle and the relay callbacks on `eduforge-shell`; real K12/CoreLayer sign-in, browser exchange/CORS and BTA permissions remain unverified |
+| Callback relay for direct OIDC (`X4_AUTH_MODE=relay`) | Implemented with automated tests. On 2026-11-05 the unchanged K12 `@maf/web-portal` signed in, exchanged, refreshed and signed out through it against a mock provider, and discovery, the sign-in redirect and token forwarding were checked against testing CoreLayer | Deploy relay mode on `auth.x4app.dev`; CoreLayer registers both relay callbacks; configure the upstream token exchange URL |
 | Single-callback OIDC broker + preview session handoff | Standalone proof of concept, mock provider tested | `auth.x4app.dev` installed in **setup mode**, real login disabled |
 | Cookie/browser binding, PKCE, nonce and signature checks | Proof of concept with automated tests | Mock evidence; real CoreLayer acceptance pending |
 | Real application receiving adapters and authorization mapping | Sample adapter only; no real project broker integration verified here | Required for broker adopters; direct applications retain their own authentication integration |
@@ -322,6 +347,7 @@ CoreLayer should return non-secret settings in this table and deliver credential
 | --- | --- |
 | Selected contract: direct application OIDC or broker handoff | Confirm per consuming application |
 | Direct applications: client ID, exact app-origin login/logout callbacks and browser endpoint/CORS policy | Confirm for existing application contract |
+| Relay applications: both `auth.x4app.dev` callbacks added to the existing testing client; `state` returned on post-logout redirect; the testing token exchange URL | To provide |
 | Environment / tenant and deployed Hydra version | To provide |
 | Exact issuer URL and discovery URL | To provide |
 | Dedicated client ID; `client_secret_basic` accepted? | To provide |
@@ -355,3 +381,4 @@ CoreLayer should return non-secret settings in this table and deliver credential
 | 1.1 | Clarify project-agnostic scope, per-application adapter ownership and acceptance, with K12/portal/BTA as an optional worked example. |
 | 1.2 | Support direct application OIDC alongside optional broker adoption; document authoritative pinned worker ports, mixed routing and the existing application authentication contract. |
 | 1.3 | Add a generic direct-login example and the K12 setup guide with application-specific callbacks and configuration ownership; distinguish routing and mock-provider evidence from real-provider acceptance. |
+| 1.4 | Add direct OIDC through the X4 callback relay: fixed `auth.x4app.dev` callbacks for an application's existing public client, with no application change and no X4 client or secret. K12 Prevent uses it and no longer pins ports. |
