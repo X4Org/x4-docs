@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.6.3">
 <title data-rh="true">K12 Prevent setup | X4</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:image" content="https://docs.x4app.dev/img/x4-social-card.svg"><meta data-rh="true" name="twitter:image" content="https://docs.x4app.dev/img/x4-social-card.svg"><meta data-rh="true" property="og:url" content="https://docs.x4app.dev/operations/k12-prevent-setup/"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="K12 Prevent setup | X4"><meta data-rh="true" name="description" content="Configuration ownership, private environment bundle installation, exact direct-login callbacks, startup and real-application testing."><meta data-rh="true" property="og:description" content="Configuration ownership, private environment bundle installation, exact direct-login callbacks, startup and real-application testing."><link data-rh="true" rel="icon" href="/img/favicon.svg"><link data-rh="true" rel="canonical" href="https://docs.x4app.dev/operations/k12-prevent-setup/"><link data-rh="true" rel="alternate" href="https://docs.x4app.dev/operations/k12-prevent-setup/" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.x4app.dev/operations/k12-prevent-setup/" hreflang="x-default"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="/assets/css/styles.6747a80f.css">
-<script src="/assets/js/runtime~main.ad7c808a.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.21c00428.js" defer="defer"></script>
 <script src="/assets/js/main.c63601ce.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -42,6 +42,11 @@ defines the required keys; do not substitute <code>mastra-testing</code>.</p>
 <p>The K12 owner runs the application tests. CoreLayer supports identity,
 authorization and roster issues; X4 supports startup and routing. Send private
 values to the operator through an approved private channel.</p>
+<p>To run the same stack with other values, such as an environment imported from
+a file into X4 Control, offer that environment to the <code>k12-prevent</code> profile
+(its page in Control, <strong>Instead of their own</strong>) rather than copying the
+profile. X4 Code then shows an <strong>Environment</strong> menu under the profile
+(<a href="/specs/corelayer/docs/sandbox.md#choosing-an-environment">choosing an environment</a>).</p>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="preview-urls">Preview URLs<a href="#preview-urls" class="hash-link" aria-label="Direct link to Preview URLs" title="Direct link to Preview URLs">​</a></h2>
 <p>Every K12 Prevent sandbox gets its own HTTPS origins under <code>preview.x4app.dev</code>,
 so any number of stacks can share a worker. X4 picks them before the containers

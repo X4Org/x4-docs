@@ -51,6 +51,12 @@ The K12 owner runs the application tests. CoreLayer supports identity,
 authorization and roster issues; X4 supports startup and routing. Send private
 values to the operator through an approved private channel.
 
+To run the same stack with other values, such as an environment imported from
+a file into X4 Control, offer that environment to the `k12-prevent` profile
+(its page in Control, **Instead of their own**) rather than copying the
+profile. X4 Code then shows an **Environment** menu under the profile
+([choosing an environment](sandbox.md#choosing-an-environment)).
+
 ## Preview URLs
 
 Every K12 Prevent sandbox gets its own HTTPS origins under `preview.x4app.dev`,

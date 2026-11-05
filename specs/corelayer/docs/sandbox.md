@@ -82,8 +82,9 @@ still accepted only `*.ts.net`.
 
 `test/fixtures/sandbox-inspect/` holds what `inspect` prints for each kind of
 stack: no stack yet, a running stack with pinned-port `*.ts.net` previews, one
-with `*.preview.x4app.dev` previews and named links, a stopped stack, and a
-Factory session's stack on the testbox worker, reachable and unreachable.
+with `*.preview.x4app.dev` previews and named links, a stopped stack, a
+Factory session's stack on the testbox worker, reachable and unreachable, and
+a profile offering a choice of environment.
 `test/sandbox-inspect-fixtures.test.mjs` produces them with the real CLI and
 fails when its output no longer matches them. X4 Code keeps a copy and its CI
 decodes every file.
@@ -423,6 +424,44 @@ the bundle. Values are never printed: status reports presence, key count and
 update time. In X4 Code, the Sandbox panel shows the same status and **Set env
 file** uploads one. A stack whose bundle is missing fails to start with the
 install command.
+
+### Choosing an environment
+
+A profile is the stack: its containers, commands, ports and health checks. An
+environment is the values those containers get. One profile can start with
+more than one environment: `envBundle` is its default, and `envBundles` lists
+the others a session may choose instead.
+
+```yaml
+sandboxProfiles:
+  k12-prevent:
+    envBundle: k12-prevent-testing        # the default
+    envBundles: [k12-prevent-imported]    # also offered
+    services: [ ... ]
+```
+
+Each environment must exist and define every group the profile's containers
+take with `bundleEnv`. In X4 Control, tick the profile under **Instead of their
+own** on the environment's page, or under **Other environments** when editing a
+repository's preview profile. Control lists profiles whose own environment
+belongs to the same product.
+
+A session's choice is kept with its checkout (`sandboxEnvBundle` in
+`.x4/workspace.yaml`) and applies to every profile that accepts it; others use
+their default. X4 Code's Sandbox panel shows an **Environment** menu under the
+profile when there is a choice. From the command line:
+
+```bash
+x4 sandbox session bind  --entry . --profile k12-prevent --env-bundle k12-prevent-imported
+x4 sandbox session start --entry . --profile k12-prevent --env-bundle k12-prevent-imported
+```
+
+`inspect` reports the session's environment as the profile's `envBundle` and,
+when there is a choice, every option under `envBundles` (default first, each
+with its `envSource` status). A running stack keeps the environment it started
+with; stop it to change environment. The stack's host receives one
+environment, written into the profile as its `envBundle`, so workers need no
+update for this. Control's Previews view shows each stack's environment.
 
 Previews require Tailscale on the host that runs the stack. X4
 publishes HTTPS `*.ts.net` origins on isolated ports and verifies the route and
