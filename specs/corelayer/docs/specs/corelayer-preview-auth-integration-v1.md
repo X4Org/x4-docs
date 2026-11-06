@@ -309,7 +309,7 @@ Ingress state persists separately, without an independent abandoned-worker lease
 | Dynamic private HTTPS preview routing | Implemented | Configure worker domain publishing and Control ingress; routing checks do not verify application sign-in |
 | Explicit `preview.port` on domain-configured workers; mixed pinned/generated routing | Implemented | Use one fixed-port stack per worker; verify mixed routing and occupied-port rejection |
 | Direct application OIDC with the K12 Prevent registry | Existing application flow retained by the registry, returning through the callback relay | Requires the private testing bundle and the relay callbacks on `eduforge-shell`; real K12/CoreLayer sign-in, browser exchange/CORS and BTA permissions remain unverified |
-| Callback relay for direct OIDC (`X4_AUTH_MODE=relay`) | Implemented with automated tests. On 2026-11-05 the unchanged K12 `@maf/web-portal` signed in, exchanged, refreshed and signed out through it against a mock provider, and discovery, the sign-in redirect and token forwarding were checked against testing CoreLayer | Deploy relay mode on `auth.x4app.dev`; CoreLayer registers both relay callbacks; configure the upstream token exchange URL |
+| Callback relay for direct OIDC (`X4_AUTH_MODE=relay`) | Implemented with automated tests. On 2026-11-05 the unchanged K12 `@maf/web-portal` signed in, exchanged, refreshed and signed out through it against a mock provider, and discovery, the sign-in redirect and token forwarding were checked against testing CoreLayer | Deployed on `auth.x4app.dev` since 2026-11-05 against dev CoreLayer, with its token exchange (`https://sso-dev-core.r2practice.com/oauth/oauth2/exchange`) since 2026-11-06. CoreLayer must still register both relay callbacks on `eduforge-shell` |
 | Single-callback OIDC broker + preview session handoff | Standalone proof of concept, mock provider tested | `auth.x4app.dev` installed in **setup mode**, real login disabled |
 | Cookie/browser binding, PKCE, nonce and signature checks | Proof of concept with automated tests | Mock evidence; real CoreLayer acceptance pending |
 | Real application receiving adapters and authorization mapping | Sample adapter only; no real project broker integration verified here | Required for broker adopters; direct applications retain their own authentication integration |
@@ -347,7 +347,7 @@ CoreLayer should return non-secret settings in this table and deliver credential
 | --- | --- |
 | Selected contract: direct application OIDC or broker handoff | Confirm per consuming application |
 | Direct applications: client ID, exact app-origin login/logout callbacks and browser endpoint/CORS policy | Confirm for existing application contract |
-| Relay applications: both `auth.x4app.dev` callbacks added to the existing testing client; `state` returned on post-logout redirect; the testing token exchange URL | To provide |
+| Relay applications: both `auth.x4app.dev` callbacks added to the existing testing client; `state` returned on post-logout redirect | To provide (the token exchange URL is known) |
 | Environment / tenant and deployed Hydra version | To provide |
 | Exact issuer URL and discovery URL | To provide |
 | Dedicated client ID; `client_secret_basic` accepted? | To provide |

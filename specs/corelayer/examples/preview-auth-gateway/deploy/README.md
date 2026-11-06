@@ -67,15 +67,16 @@ the [integration contract](../../../docs/specs/corelayer-preview-auth-integratio
 
    ```dotenv
    X4_AUTH_MODE=relay
-   X4_AUTH_RELAY_PROVIDERS={"corelayer-testing":{"issuer":"https://oidc-dev-core.r2practice.com","tokenExchange":"<testing token exchange URL>"}}
+   X4_AUTH_RELAY_PROVIDERS={"corelayer-testing":{"issuer":"https://oidc-dev-core.r2practice.com","tokenExchange":"https://sso-dev-core.r2practice.com/oauth/oauth2/exchange"}}
    ```
 
    Keep `X4_AUTH_BASE_URL`, `LISTEN_HOST` and `LISTEN_PORT`. The registration
    token is ignored, and OIDC client settings are refused. Optionally set
    `X4_AUTH_RELAY_STATE_KEY` (32+ random characters) so restarts don't break
    sign-ins in progress, and `X4_AUTH_RELAY_HOST_SUFFIX` (default
-   `.preview.x4app.dev`). Leave out `tokenExchange` until CoreLayer supplies it;
-   `/exchange` then returns 404.
+   `.preview.x4app.dev`). `tokenExchange` is the value the deployed K12 frontend
+   uses (`VITE_TOKEN_EXCHANGE_URL` in `X4Org/ruunis-ui-modules`). Without it,
+   `/exchange` returns 404.
 3. Check and restart, then verify from a Tailscale device:
 
    ```sh

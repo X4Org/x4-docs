@@ -40,7 +40,8 @@ defines the required keys; do not substitute `mastra-testing`.
 | Configuration | Owner |
 | --- | --- |
 | `OIDC_ISSUER`, `EXPECTED_AUDIENCE` | CoreLayer with the K12 owner: confirm the testing client and BTA contract |
-| The two `auth.x4app.dev` callbacks on `eduforge-shell`, the testing token exchange URL, test account and tenant permissions | CoreLayer with the K12 owner |
+| `CL_PRIVATE_KEY`, the key of the `bta-sync-local` roster sync client | CoreLayer with the K12 owner |
+| The two `auth.x4app.dev` callbacks on `eduforge-shell`, test account and tenant permissions | CoreLayer with the K12 owner |
 | The relay's provider settings on `auth.x4app.dev` | X4 operator |
 | `BTA_CONTRACTS_TOKEN` with read access to private `X4Org/bta-contracts` | K12/repository credential owner |
 | `OPENAI_API_KEY`, `ELEVENLABS_API_KEY`, `RESEND_API_KEY`, `LINEAR_API_KEY` | K12/provider credential owners: supply approved testing keys |
@@ -208,8 +209,11 @@ The K12 owner then tests with CoreLayer support:
    the approved test inbox; enabled providers make real service calls.
 4. Confirm unauthorized accounts/tenants are denied. Test session expiry,
    reauthentication and logout against the agreed policy.
-5. If a roster is needed, arrange a CoreLayer sync and retest it. Scheduled sync
-   is disabled, and the incident seed does not supply a roster.
+5. Run a roster sync before signing in: bta-api only admits a person whose
+   account a sync brought in, and answers 403 otherwise. Scheduled sync is
+   disabled; start one with `POST /admin/sync` on bta-api with the profile's
+   `SYNC_TRIGGER_SECRET` in `X-Sync-Secret`, and follow it with
+   `GET /admin/sync/<jobId>`. The incident seed does not supply a roster.
 6. Record separate results for health, login, API authorization, case opening,
    logout and roster. A healthy API does not prove sign-in.
 

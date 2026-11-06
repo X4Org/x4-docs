@@ -188,23 +188,29 @@ sandboxProfiles:
           AZURE_STORAGE_CONTAINER: bta-private
           AZURE_STORAGE_PREFIX: private
           AZURE_STORAGE_AUTO_CREATE_CONTAINER: "true"
-          # K12 Prevent calls bta-api with the shell's exchanged token only.
-          SHELL_ALLOWED_AZP: eduforge-shell
-          # The cookie login is unused here; config.ts only requires values.
-          AUTH_MODE: oidc
+          # K12 Prevent calls bta-api with the shell's exchanged token only. The
+          # portal token exchange issues it as corelayer-exchanger.
+          SHELL_ALLOWED_AZP: eduforge-shell,corelayer-exchanger
+          # bta-api's own CoreLayer login is off (AUTH_MODE=magic): it would use
+          # the placeholder client below, which CoreLayer doesn't have. People
+          # sign in through the K12 Prevent frontend; config.ts only requires
+          # the OIDC values to be set.
+          AUTH_MODE: magic
           OIDC_CLIENT_ID: bta-x4-preview
           OIDC_REDIRECT_URI: http://localhost:5000/api/auth/callback
           OIDC_POST_LOGOUT_URI: http://localhost:5000
           OIDC_SCOPE: openid profile email
           ALLOWED_AZP: bta-x4-preview
-          # Roster sync off, with BTA-POC compose's placeholders.
+          # Roster sync from dev CoreLayer with the bta-sync-local client. It
+          # runs only when triggered (POST /admin/sync, X-Sync-Secret); a signed-in
+          # person needs a synced account. CL_PRIVATE_KEY comes from the
+          # environment.
           SYNC_SCHEDULE_ENABLED: "false"
           CL_CREDENTIAL_ENVIRONMENT: development
-          CL_CLIENT_ID: local
-          CL_KEY_ID: local
-          CL_PRIVATE_KEY: local
-          SYNC_API_URL: https://sync.invalid
-          PRIVATE_API_URL: https://private.invalid
+          CL_CLIENT_ID: bta-sync-local
+          CL_KEY_ID: key-da50fc89-2d3
+          SYNC_API_URL: https://sync-dev-core.r2practice.com
+          PRIVATE_API_URL: https://private-dev-core.r2practice.com
           SYNC_PAGE_SIZE: "200"
           SYNC_TRIGGER_SECRET: x4-preview-trigger-secret
         injectEnvFile: true
@@ -288,6 +294,8 @@ envBundles:
       # bta-api, testing CoreLayer.
       - OIDC_ISSUER
       - EXPECTED_AUDIENCE
+      # bta-api, the bta-sync-local client's P-256 key (base64url PKCS8 DER).
+      - CL_PRIVATE_KEY
       # bta-api, external services.
       - OPENAI_API_KEY
       - ELEVENLABS_API_KEY
