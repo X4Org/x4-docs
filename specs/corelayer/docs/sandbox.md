@@ -43,6 +43,12 @@ x4 sandbox up --profile development --wait
 
 ## Existing Factory and X4 Code sessions
 
+Each project service can have its own generated `preview.x4app.dev` hostname
+on an enrolled preview worker. Starting another project leaves the machine's
+`devNN.x4app.dev` primary service unchanged. Machine HTTPS enrollment and
+preview-worker enrollment are separate. See [Project HTTPS routing](../deploy/domains/project-routing.md)
+for setup requirements, changing upstreams and stable project environments.
+
 A session can attach its existing Git checkout to a profile without creating a
 worktree, switching branches, or installing dependencies:
 
