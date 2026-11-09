@@ -273,6 +273,12 @@ envBundles:
     required: [POSTGRES_CONNECTION_STRING, ...]
 ```
 
+Profiles may set `displayName`, such as `displayName: X4 Website`, for the name
+shown in X4 Code. Set it in Control’s repository preview-profile editor or a
+registry YAML import. The profile ID stays stable for commands and saved
+selections. Names belong to each profile and are not inherited; without one,
+X4 Code formats the ID as a readable label.
+
 Control's own `sandboxProfiles` are a different catalogue: the central profiles
 `x4 workspace bootstrap` and remote sandboxes use. A session's own `.x4/sandbox.yaml` adds profiles
 or replaces template profiles by id, and may `extend` them. Starting a stack on
