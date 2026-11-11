@@ -149,6 +149,34 @@ x4 sandbox session start --entry /path/to/session/checkout --target local  # thi
   worker itself, `x4 sandbox stacks gc --apply` does the same, hourly from a
   systemd timer ([deploy/testbox](../deploy/testbox/README.md)).
 
+### Start progress
+
+A start reports what it is doing while it runs, for any profile and on either
+host, when the caller sets `X4_SANDBOX_PROGRESS=1`. Each event is one stderr
+line, `x4-progress ` followed by JSON. Stdout and the other stderr lines are
+unchanged, and a terminal without the variable sees no events.
+
+```text
+x4-progress {"v":1,"step":"deliver","detail":"my-app @ 1a2b3c4","host":"x4-testbox-standard-1","at":"…"}
+x4-progress {"v":1,"step":"containers","line":"#7 [api 3/6] RUN pnpm install","host":"x4-testbox-standard-1","at":"…"}
+x4-progress {"v":1,"step":"readiness","services":{"postgres":"healthy","api":"starting"},"host":"x4-testbox-standard-1","at":"…"}
+```
+
+- `step`, in order: `deliver` (copy each repository to the worker), `env`
+  (install the env file), `sync` (`--sync-working-tree`), `dependencies` (a
+  repository's setup command), `containers` (build images and start
+  containers), `readiness` (health checks) and `preview` (publish URLs). A
+  start skips the steps it does not need.
+- An event with `detail` starts a step. An event with `line` carries one line
+  of the step's command output (dependency installs, image builds), without
+  terminal escapes and cut at 400 characters. A `readiness` event with
+  `services` gives each service's state whenever one changes.
+- `host` names the worker a step ran on. A start on a worker passes the
+  worker's own events back as they happen, so the caller sees the build and
+  readiness there too.
+- Parse with `parseSandboxProgressLine` (`src/sandbox-progress.ts`) and ignore
+  lines it rejects. `v` changes only if an existing field changes meaning.
+
 ### Where previews are listed and how they end
 
 X4 Control's **Projects → Previews** lists every session stack on the testbox
