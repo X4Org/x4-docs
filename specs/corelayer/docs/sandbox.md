@@ -163,7 +163,9 @@ or Control), when its X4 Code product conversation is deleted or all its pull
 requests merge (`x4 workspace thread remove`), or when
 `x4 control gc --reap-sandboxes` runs after its expiry. On a worker,
 `x4 sandbox stacks list` and `x4 sandbox stacks stop <id>` do the same as
-Control.
+Control. `x4 sandbox stacks logs <id> [--service <name>] [--tail <lines>]`
+prints the newest lines of each container as JSON; a preview's page in Control
+shows them.
 
 A stopped stack keeps its workspace folder (checkout, env file and start
 record) and its Docker volumes, and Control lists it as Stopped. Deleting it in
