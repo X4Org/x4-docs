@@ -123,6 +123,9 @@ sandboxProfiles:
         repo: bta-poc
         kind: db
         image: postgres:16
+        # Throwaway preview data: skip disk flushes so migrations and the roster
+        # sync don't wait on a busy testbox's disk.
+        command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off
         mountRepo: false
         injectEnvFile: false
         containerPort: 5432
@@ -173,10 +176,13 @@ sandboxProfiles:
           && npm run db:migrate
           && if node -e 'const c = new (require(process.argv[1]).Client)(process.env.DATABASE_URL); c.connect().then(() => c.query(process.argv[2])).then((r) => process.exit(r.rows[0].n === 0 ? 0 : 1))' pg 'select count(*)::int as n from incidents';
           then npx tsx scripts/seed-test-incidents.ts; fi
+          && { node -e 'const u=\"http://127.0.0.1:5000\",s=process.env.SYNC_TRIGGER_SECRET,w=t=>new Promise(r=>setTimeout(r,t));(async()=>{if(!s)return;for(let i=0;i<300;i++){try{if((await fetch(u+\"/health\")).ok)break}catch{}await w(2000)}for(let i=0;i<60;i++){try{const r=await fetch(u+\"/admin/sync\",{method:\"POST\",headers:{\"X-Sync-Secret\":s,\"content-type\":\"application/json\"},body:\"{}\"});const b=await r.json().catch(()=>({}));if(r.status===202&&!b.deduplicated){console.log(\"[x4] initial roster sync started\");return}}catch{}await w(3000)}console.log(\"[x4] initial roster sync not started\")})()' & }
           && exec env -u BTA_CONTRACTS_TOKEN npm run dev"
         environment:
           HOME: /tmp/x4-home
           npm_config_cache: /tmp/.npm-cache
+          npm_config_audit: "false"
+          npm_config_fund: "false"
           NODE_ENV: development
           DATABASE_URL: postgres://bta:bta@postgres:5432/bta
           DATABASE_SSL: disable
@@ -201,11 +207,13 @@ sandboxProfiles:
           OIDC_POST_LOGOUT_URI: http://localhost:5000
           OIDC_SCOPE: openid profile email
           ALLOWED_AZP: bta-x4-preview
-          # Roster sync from dev CoreLayer with the bta-sync-local client. It
-          # runs only when triggered (POST /admin/sync, X-Sync-Secret); a signed-in
-          # person needs a synced account. CL_PRIVATE_KEY comes from the
+          # Roster sync from dev CoreLayer with the bta-sync-local client. A
+          # signed-in person needs a synced account, and BTA's startup sync covers
+          # districts and facilities only. The command above triggers one full
+          # sync (POST /admin/sync, X-Sync-Secret) once bta-api is healthy; the
+          # scheduler then runs every minute. CL_PRIVATE_KEY comes from the
           # environment.
-          SYNC_SCHEDULE_ENABLED: "false"
+          SYNC_SCHEDULE_INTERVAL_MS: "60000"
           CL_CREDENTIAL_ENVIRONMENT: development
           CL_CLIENT_ID: bta-sync-local
           CL_KEY_ID: key-da50fc89-2d3
