@@ -114,7 +114,8 @@ sandboxProfiles:
     description: >-
       K12 Prevent (BTA product, not the Mastra k12 target): k12-prevent
       frontend serving BTA from source, bta-api, and a PostgreSQL and Azurite
-      of its own. Testing CoreLayer roster and real testing AI/email providers.
+      of its own. Real AI and email providers, testing CoreLayer roster,
+      isolated database and storage.
     executionRuntime: compose
     envBundle: k12-prevent-testing
     services:

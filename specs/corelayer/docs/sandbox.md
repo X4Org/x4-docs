@@ -62,10 +62,18 @@ x4 sandbox session stop --entry /path/to/session/checkout
 
 In X4 Code, open the thread's workspace details and use **Sandbox** to select
 and start a profile. **Open preview** opens each ready browser service in the
-integrated Browser. Configuration lives in `.x4/sandbox.yaml`; selection and
-runtime state live in the checkout's `.x4/workspace.yaml`, shared with Factory
+integrated Browser. Configuration lives in `.x4/sandbox.yaml`. The profile and
+environment selection live in the checkout's `.x4/workspace.yaml` with the rest
+of its repository binding; the stack's state (where it runs, status, previews,
+test runs) lives in `.x4/stack.yaml`, which only sandbox, preview and test
+commands write. Re-running `x4 workspace bootstrap`, as Factory does when a
+session reconnects, never touches `stack.yaml`. Both are shared with Factory
 agents using that checkout. Stop the stack before changing profiles or moving
 it between hosts.
+
+One sandbox operation runs at a time per checkout. The lock is a kernel `flock`
+held by the running x4, so a start that is killed (an X4 Code restart, OOM)
+releases it; nothing needs deleting by hand.
 
 `logs` prints the last 150 lines per service. `--tail <n>` (1-10000) changes
 that, and `--timestamps` starts each line with its time, as in
