@@ -29,8 +29,9 @@ The bundle is a private settings file on the worker:
 /etc/x4/env/k12-prevent-testing.env
 ```
 
-X4 supplies its values to the containers. The registry's `allowMissing: false`
-blocks startup when the file or a required key name is missing. HTTPS routing
+X4 supplies only each service's selected values to its container. The registry's
+`allowMissing: false` blocks startup when the source file is needed but missing,
+or a selected required input is missing or blank. HTTPS routing
 does not create this file or register a CoreLayer client.
 
 Complete the [blank template](../examples/registries/k12-prevent-testing.env.template)
@@ -148,10 +149,10 @@ x4 env doctor --registry "$k12_registry" --bundle k12-prevent-testing
 ```
 
 Installation writes the file at the worker bundle path with owner `root:dev`
-and mode `640`, so `dev` can read it. Missing required keys or forbidden key names
-prevent installation. **Empty assignments count as present keys**: fill every
-required value even if `doctor` passes. Neither command verifies credentials
-or provider acceptance. See the [environment contract](env-contract.md).
+and mode `640`, so `dev` can read it. Missing or blank required values and
+forbidden key names prevent installation. Optional values may be empty. Neither
+command verifies credentials or provider acceptance. See the
+[environment contract](env-contract.md).
 
 This profile reads the worker file. Adding a generic managed bundle in Control
 does not configure it.
@@ -181,7 +182,23 @@ Bootstrap attaches `BTA-POC` under `.x4/repos/`. Startup creates isolated
 PostgreSQL and Azurite services, runs BTA migrations and the incident seed,
 then starts the API and frontend. Containers install their dependencies. The
 registry excludes staging files; database and storage configuration belong to
-this preview.
+this preview. The frontend receives only its public auth settings and the
+dependency install token from the shared bundle; the token is removed before
+Vite starts. API and login callback URLs come from this preview's generated
+origins. Backend provider keys stay out of the frontend container.
+
+Both application services have explicit selections in the shipped defaults.
+The backend receives its provider, backend authentication, email settings and
+dependency token; it does not receive the frontend's `VITE_*` settings.
+PostgreSQL and Azurite receive no bundle values.
+
+If Control already holds an edited K12 profile, use the environment's **Service
+variables** editor to apply the same backend and frontend selections before the
+next start. Installing updated tools does not replace saved registry edits.
+K12 can keep its private dotenv source; editing service selections does not
+move its values into Control or require a Key Vault. The dependency token is
+still present in the selected containers' configuration and prepared files,
+even though the application command removes it before starting its server.
 
 Record source commits, worker, workspace and returned URLs with the test results.
 Do not capture container environments or secret files.

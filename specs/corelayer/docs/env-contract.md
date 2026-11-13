@@ -11,17 +11,17 @@ commands, use the [K12 Prevent setup guide](k12-prevent-setup.md).
 ## Model
 
 Developers may keep using local `.env` files for personal devbox work. Remote
-test and preview jobs should use worker-local, non-production env bundles such
+test jobs use worker-local, non-production env bundles such
 as:
 
 ```text
 /etc/x4/env/mastra-pilot.env
 ```
 
-X4 validates the bundle by key name before the job runs. Installation and
-runtime injection create private files; they do not print values or rotate
-credentials. Empty assignments count as present keys. A successful key-name
-check does not verify nonempty values, provider credentials or real sign-in.
+X4 checks that required bundle values are present and nonblank before the job
+runs; optional values may be empty. Installation and runtime injection create
+private files; they do not print values or rotate credentials. These checks do
+not verify provider credentials or real sign-in.
 
 ## Registry Contract
 
@@ -69,8 +69,8 @@ x4 env install-bundle \
   --filter-forbidden
 ```
 
-The command reports only file path, counts, missing key names, and forbidden key
-names. It never prints values.
+The command reports only file path, counts, missing or empty required key names,
+and forbidden key names. It never prints values.
 
 ### `x4 env doctor --json`
 
@@ -85,15 +85,16 @@ names. It never prints values.
   "required": ["MASTRA_API_URL"],
   "optional": [],
   "missing": [],
+  "empty": [],
   "forbidden": []
 }
 ```
 
 `present` is the set of key names found in the bundle file — **names only, never
 values** (a missing file yields `present: []`). `configured` is `true` only when
-the file exists, no required key is missing, and no forbidden key is present.
+the file exists, no required key is missing or blank, and no forbidden key is present.
 Unlike the human form, `--json` exits `0` even when the bundle is not configured
-(missing file / missing required key / forbidden key present); the caller reads
+(missing file / missing or blank required key / forbidden key present); the caller reads
 `configured`. It exits non-zero only if the command itself errored (e.g. unknown
 bundle). The human output is unchanged when `--json` is absent.
 
@@ -106,9 +107,10 @@ file-backed bundle on the host that will run the tests or sandbox services.
 
 It prints the same lead lines as the SSH path (`env bundle:`, `registry:`,
 `source:`, `target: local`, `destination:`, `keys:`, `removed forbidden-key
-lines:`) and the same `fail missing required key:` / `fail forbidden key/pattern
-present:` lines with a non-zero exit when a required key is missing or a
-forbidden key is present (no file is written in that case). `--dry-run` prints
+lines:`) and the same `fail missing required key:` / `fail empty required key:` /
+`fail forbidden key/pattern present:` lines with a non-zero exit when a required
+key is missing or blank or a forbidden key is present (no file is written in
+that case). `--dry-run` prints
 the plan followed by `dry run: no file written` and returns.
 
 Otherwise it creates `dirname(bundle.path)` and writes the file with the
@@ -141,7 +143,7 @@ default.
 The env file stays on the worker VPS. The generated remote job script:
 
 1. checks that the file exists when required;
-2. validates required and forbidden key names;
+2. validates required values and forbidden key names;
 3. parses the worker-local env file into a shell-safe, run-scoped runtime file;
 4. sources only that generated runtime file for the job process tree;
 5. runs workspace bootstrap and `x4 test`;
@@ -161,6 +163,21 @@ A service with `bundleEnv` instead receives its own
 group, by key or under another name; see
 [per-service env](sandbox.md#per-service-env). The runtime copies are not
 tracked, printed, posted, or copied into artifacts.
+
+Session previews resolve a configured Control bundle first, then a devbox copy
+at `~/.x4/secrets/<bundle>.env`, then the installed file on the stack's host.
+Control values and Key Vault references are resolved on the initiating machine;
+this path uses its Azure access and does not require diagnostics MCP. Worker
+starts receive values over private stdin and prepare a separate runtime copy
+for that start. They do not replace the host's shared default file.
+
+Each successful session start records variable names, sources and references
+per service, without values or value hashes. The applied receipt stays fixed
+until another successful start. Current configuration is shown separately;
+worker inventory marks the initiating machine's current selection unverified.
+Older stacks have no applied receipt until restarted with updated tools. A
+Key Vault rotation behind the same reference is resolved at the next start and
+cannot be inferred from the receipt.
 
 The parser handles common dotenv files with CRLF line endings, `export KEY=...`
 prefixes, comments, quoted values, and unquoted values containing spaces. The

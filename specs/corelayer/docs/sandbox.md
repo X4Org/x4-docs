@@ -523,7 +523,7 @@ external Node interpreter, and `X4_SANDBOX_PREVIEW_SUDO=1` when Serve requires
 passwordless sudo. With remote X4 connections, these tools and the checkout
 belong on the connected server.
 
-### Own values per container
+### Legacy own values per container
 
 An environment set in X4 Control can give one container its own value for a
 variable, so two containers read the same name with different values. The
@@ -542,11 +542,18 @@ envBundles:
         omit: [LINEAR_API_KEY]                              # not given to it
 ```
 
-In Control, the environment's Variables table shows one column per container,
-each cell what that container reads; **Edit** sets a cell to the shared value,
-its own value, its own Key Vault secret, or *not given*. A column heading
-switches a container between this environment and nothing
-(`injectEnvFile: false` on its preview profile).
+These entries are retained for compatibility. They are keyed by service name
+across every profile using the environment, so new edits should use the scoped
+service variable selections below. Control shows existing overrides without
+changing every service with the same name. To give services different values,
+define separate source keys in the environment and map each service's variable
+to the source key it needs.
+
+A legacy override still takes precedence at its destination name, including
+when a scoped selection maps a different source to that name. To migrate an
+existing override, configure the affected profiles' distinct source mappings,
+then remove the legacy entry through YAML import. The editor displays the
+effective legacy source until that migration is complete.
 
 The host that starts the stack resolves them with the shared values and carries
 them in the prepared file under reserved names (`X4_CONTAINER__<CONTAINER>__<KEY>`
@@ -566,8 +573,9 @@ every container the reserved lines. Update workers with
 
 ### Per-service env
 
-By default every service that does not set `injectEnvFile: false` receives the
-whole bundle. A service with `bundleEnv` receives only the values it names, in
+Existing services that omit both `bundleEnv` and `injectEnvFile: false` keep
+receiving the whole bundle until explicitly converted. New services created in
+Control start with an empty selection. A service with `bundleEnv` receives only the values it names, in
 its own env file, so a frontend gets no database password and two services can
 read the same variable name with different values:
 
@@ -599,8 +607,12 @@ profiles:
   The manifest sent to a worker carries the groups, so the worker needs no
   access to Control.
 - Every variable has one source. Two sources for one name, a name also set in
-  the service's `environment`, or an unknown group stop the start. So does a
-  bundle key missing from the env file, reported by name.
+  the service's `environment`, or an unknown group stop the start. Only keys
+  used by the selected profile's services are resolved. A missing or blank
+  required service input stops the start; an explicitly optional input may be
+  absent or blank. A selected key not declared optional remains required for
+  compatibility. Unselected keys, including Key Vault references belonging to
+  other services, do not block that profile.
 - A service sets `bundleEnv` or `injectEnvFile`, not both. In a child profile,
   an override that names one drops the other inherited from the parent.
 - The files are `.x4/sandbox/env/service-<id>.env`, mode 0600, rewritten at
@@ -610,6 +622,48 @@ profiles:
   profile in Control uses it; an older `x4` refuses the profile. Update workers
   with `scripts/update-worker.sh` and devboxes' X4 Code release first. Groups
   alone are safe to add: they reach a worker only with a profile that uses them.
+
+### Configure one service in Control
+
+Open **Projects → Environments**, choose the environment, and use **Service
+variables**. Select the exact stack profile and service. Repository-owned
+profiles and global sandbox profiles are listed separately, so saving one
+`api` service does not change another profile's `api` service.
+
+Choose source keys and, when necessary, change their destination names. Saving
+writes that service's `bundleEnv.keys` and `bundleEnv.map` in its profile;
+profile inheritance and the other services are preserved. An empty selection
+gives the service nothing from the environment. Ordinary fixed settings in the
+profile remain separate.
+
+This works for both supported sources:
+
+- A private dotenv file supplies its existing named values. Control stores
+  names and selections, and never needs the dotenv contents. K12 Prevent can
+  keep this source without an Azure Key Vault.
+- A Control-defined environment supplies ordinary values and Key Vault
+  references. The initiating devbox reads only the selected secrets using its
+  Azure login. Control does not persist their values.
+
+For example, an environment can define `API_OIDC_ISSUER` and
+`WIDGET_OIDC_ISSUER`. Each service maps its chosen source to `OIDC_ISSUER`.
+The same mapping works when those two source keys are in a private dotenv file.
+
+GitHub dependency access is configured separately. Select its token variable
+only for services that install the listed private repositories. The token is
+short-lived, but it is still present in those services' prepared files and
+container configuration. Dropping it before launching the application does
+not provide installation-only isolation; that needs a separate setup phase.
+
+The existing applied environment receipt lists each service's names, sources,
+references, and startup status. Missing optional selected inputs are recorded
+as missing. Changing selections takes effect on the next start; restart a
+running preview to apply it. Explicit bundle doctor/install commands continue
+to validate the complete bundle rather than one service selection.
+
+Update the initiating devbox and workers together. A start checks that its
+worker supports private per-service preparation before sending any values;
+an older worker reports that it needs an update.
 
 ## Mastra Docker execution runtime
 

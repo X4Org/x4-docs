@@ -221,7 +221,20 @@ sandboxProfiles:
           PRIVATE_API_URL: https://private-dev-core.r2practice.com
           SYNC_PAGE_SIZE: "200"
           SYNC_TRIGGER_SECRET: x4-preview-trigger-secret
-        injectEnvFile: true
+        # Only the backend's declared inputs, including its private dependency install token.
+        bundleEnv:
+          keys:
+            - BTA_CONTRACTS_TOKEN
+            - OIDC_ISSUER
+            - EXPECTED_AUDIENCE
+            - CL_PRIVATE_KEY
+            - OPENAI_API_KEY
+            - ELEVENLABS_API_KEY
+            - RESEND_API_KEY
+            - LINEAR_API_KEY
+            - NOTIFICATION_EMAIL_TO
+            - FEEDBACK_EMAIL_TO
+            - RESEND_FROM_EMAIL
         dependsOn:
           - postgres
           - azurite
@@ -267,13 +280,10 @@ sandboxProfiles:
           # CoreLayer its fixed callbacks and returns to this sandbox.
           VITE_OIDC_ISSUER: https://auth.x4app.dev/p/corelayer-testing
           VITE_TOKEN_EXCHANGE_URL: https://auth.x4app.dev/p/corelayer-testing/exchange
-          # The bundle is shared with bta-api; the frontend gets none of its
-          # server secrets. Keep in sync with envBundles.k12-prevent-testing.required.
-          OPENAI_API_KEY: ""
-          ELEVENLABS_API_KEY: ""
-          RESEND_API_KEY: ""
-          LINEAR_API_KEY: ""
-        injectEnvFile: true
+        # Only the private installation token enters the frontend from the bundle.
+        bundleEnv:
+          keys:
+            - BTA_CONTRACTS_TOKEN
         dependsOn:
           - bta-api
         health:
