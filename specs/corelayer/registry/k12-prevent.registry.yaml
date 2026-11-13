@@ -16,8 +16,8 @@
 # so it must never point at a shared database.
 #
 # Known limits:
-#   - Roster is empty. Roster sync is off (placeholder CoreLayer M2M and sync
-#     upstreams), and only BTA-POC's own seed-test-incidents data is loaded.
+#   - The isolated database imports the testing CoreLayer roster. Its read-only
+#     sync client must be configured; readiness waits for users and roles.
 #   - AI, speech-to-text, email and Linear are real providers (testing keys).
 #     Mail goes to NOTIFICATION_EMAIL_TO / FEEDBACK_EMAIL_TO, which must be the
 #     team test inbox, never a real person (address still to be chosen).
@@ -114,7 +114,7 @@ sandboxProfiles:
     description: >-
       K12 Prevent (BTA product, not the Mastra k12 target): k12-prevent
       frontend serving BTA from source, bta-api, and a PostgreSQL and Azurite
-      of its own. Real AI and email providers, empty roster, nothing shared.
+      of its own. Testing CoreLayer roster and real testing AI/email providers.
     executionRuntime: compose
     envBundle: k12-prevent-testing
     services:
@@ -123,9 +123,8 @@ sandboxProfiles:
         repo: bta-poc
         kind: db
         image: postgres:16
-        # Throwaway preview data: skip disk flushes so migrations and the roster
-        # sync don't wait on a busy testbox's disk.
-        command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off
+        dataMounts:
+          data: /var/lib/postgresql/data
         mountRepo: false
         injectEnvFile: false
         containerPort: 5432
@@ -146,6 +145,8 @@ sandboxProfiles:
         repo: bta-poc
         kind: service
         image: mcr.microsoft.com/azure-storage/azurite:3.35.0
+        dataMounts:
+          data: /data
         mountRepo: false
         injectEnvFile: false
         containerPort: 10000
@@ -176,7 +177,6 @@ sandboxProfiles:
           && npm run db:migrate
           && if node -e 'const c = new (require(process.argv[1]).Client)(process.env.DATABASE_URL); c.connect().then(() => c.query(process.argv[2])).then((r) => process.exit(r.rows[0].n === 0 ? 0 : 1))' pg 'select count(*)::int as n from incidents';
           then npx tsx scripts/seed-test-incidents.ts; fi
-          && { node -e 'const u=\"http://127.0.0.1:5000\",s=process.env.SYNC_TRIGGER_SECRET,w=t=>new Promise(r=>setTimeout(r,t));(async()=>{if(!s)return;for(let i=0;i<300;i++){try{if((await fetch(u+\"/health\")).ok)break}catch{}await w(2000)}for(let i=0;i<60;i++){try{const r=await fetch(u+\"/admin/sync\",{method:\"POST\",headers:{\"X-Sync-Secret\":s,\"content-type\":\"application/json\"},body:\"{}\"});const b=await r.json().catch(()=>({}));if(r.status===202&&!b.deduplicated){console.log(\"[x4] initial roster sync started\");return}}catch{}await w(3000)}console.log(\"[x4] initial roster sync not started\")})()' & }
           && exec env -u BTA_CONTRACTS_TOKEN npm run dev"
         environment:
           HOME: /tmp/x4-home
@@ -207,19 +207,9 @@ sandboxProfiles:
           OIDC_POST_LOGOUT_URI: http://localhost:5000
           OIDC_SCOPE: openid profile email
           ALLOWED_AZP: bta-x4-preview
-          # Roster sync from dev CoreLayer with the bta-sync-local client. A
-          # signed-in person needs a synced account, and BTA's startup sync covers
-          # districts and facilities only. The command above triggers one full
-          # sync (POST /admin/sync, X-Sync-Secret) once bta-api is healthy; the
-          # scheduler then runs every minute. CL_PRIVATE_KEY comes from the
-          # environment.
-          SYNC_SCHEDULE_INTERVAL_MS: "60000"
-          CL_CREDENTIAL_ENVIRONMENT: development
-          CL_CLIENT_ID: bta-sync-local
-          CL_KEY_ID: key-da50fc89-2d3
-          SYNC_API_URL: https://sync-dev-core.r2practice.com
-          PRIVATE_API_URL: https://private-dev-core.r2practice.com
+          # Scheduling is selected from the project environment; health observes its checkpoints.
           SYNC_PAGE_SIZE: "200"
+          SYNC_SCHEDULE_INTERVAL_MS: "60000"
           SYNC_TRIGGER_SECRET: x4-preview-trigger-secret
         # Only the backend's declared inputs, including its private dependency install token.
         bundleEnv:
@@ -227,7 +217,13 @@ sandboxProfiles:
             - BTA_CONTRACTS_TOKEN
             - OIDC_ISSUER
             - EXPECTED_AUDIENCE
+            - CL_CREDENTIAL_ENVIRONMENT
+            - CL_CLIENT_ID
+            - CL_KEY_ID
             - CL_PRIVATE_KEY
+            - SYNC_API_URL
+            - PRIVATE_API_URL
+            - SYNC_SCHEDULE_ENABLED
             - OPENAI_API_KEY
             - ELEVENLABS_API_KEY
             - RESEND_API_KEY
@@ -239,8 +235,9 @@ sandboxProfiles:
           - postgres
           - azurite
         health:
-          type: http
-          path: /health
+          type: command
+          command: >-
+            node --input-type=module -e 'try { const r = await fetch("http://127.0.0.1:" + (process.env.PORT || "5000") + "/health", { signal: AbortSignal.timeout(4000) }); const h = await r.json(); const e = h.syncFreshness?.entities; const ready = r.ok && h.status === "ok" && h.db === "connected" && ["districts", "facilities", "users", "user-roles"].every(k => typeof e?.[k] === "string" && new Date(e[k]).toISOString() === e[k]); process.exit(ready ? 0 : 1); } catch { process.exit(1); }'
           startPeriod: 600s
           interval: 10s
           timeout: 5s
@@ -312,8 +309,14 @@ envBundles:
       # bta-api, testing CoreLayer.
       - OIDC_ISSUER
       - EXPECTED_AUDIENCE
-      # bta-api, the bta-sync-local client's P-256 key (base64url PKCS8 DER).
+      # Read-only testing roster client, used only by bta-api.
+      - CL_CREDENTIAL_ENVIRONMENT
+      - CL_CLIENT_ID
+      - CL_KEY_ID
       - CL_PRIVATE_KEY
+      - SYNC_API_URL
+      - PRIVATE_API_URL
+      - SYNC_SCHEDULE_ENABLED
       # bta-api, external services.
       - OPENAI_API_KEY
       - ELEVENLABS_API_KEY

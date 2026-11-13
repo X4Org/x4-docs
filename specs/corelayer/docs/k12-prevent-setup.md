@@ -41,7 +41,7 @@ defines the required keys; do not substitute `mastra-testing`.
 | Configuration | Owner |
 | --- | --- |
 | `OIDC_ISSUER`, `EXPECTED_AUDIENCE` | CoreLayer with the K12 owner: confirm the testing client and BTA contract |
-| `CL_PRIVATE_KEY`, the key of the `bta-sync-local` roster sync client | CoreLayer with the K12 owner |
+| `CL_CREDENTIAL_ENVIRONMENT`, `CL_CLIENT_ID`, `CL_KEY_ID`, `CL_PRIVATE_KEY`, `SYNC_API_URL`, `PRIVATE_API_URL` | CoreLayer with the K12 owner: supply the testing directory client's read credentials and endpoints |
 | The two `auth.x4app.dev` callbacks on `eduforge-shell`, test account and tenant permissions | CoreLayer with the K12 owner |
 | The relay's provider settings on `auth.x4app.dev` | X4 operator |
 | `BTA_CONTRACTS_TOKEN` with read access to private `X4Org/bta-contracts` | K12/repository credential owner |
@@ -173,14 +173,15 @@ x4 workspace bootstrap \
   --install skip --feature k12-prevent-preview
 x4 sandbox up \
   --entry "$k12_entry" --profile k12-prevent --runtime compose \
-  --wait --wait-timeout-seconds 900
+  --wait --wait-timeout-seconds 1200
 x4 preview serve --entry "$k12_entry" --profile k12-prevent --sudo
 x4 status --entry "$k12_entry"
 ```
 
 Bootstrap attaches `BTA-POC` under `.x4/repos/`. Startup creates isolated
 PostgreSQL and Azurite services, runs BTA migrations and the incident seed,
-then starts the API and frontend. Containers install their dependencies. The
+then starts the API and frontend. BTA's existing worker initializes the testing
+roster into this isolated database. Containers install their dependencies. The
 registry excludes staging files; database and storage configuration belong to
 this preview. The frontend receives only its public auth settings and the
 dependency install token from the shared bundle; the token is removed before
@@ -188,13 +189,38 @@ Vite starts. API and login callback URLs come from this preview's generated
 origins. Backend provider keys stay out of the frontend container.
 
 Both application services have explicit selections in the shipped defaults.
-The backend receives its provider, backend authentication, email settings and
+The backend receives its provider, backend authentication, directory sync, email settings and
 dependency token; it does not receive the frontend's `VITE_*` settings.
 PostgreSQL and Azurite receive no bundle values.
 
-If Control already holds an edited K12 profile, use the environment's **Service
-variables** editor to apply the same backend and frontend selections before the
-next start. Installing updated tools does not replace saved registry edits.
+Both storage services declare `dataMounts`: PostgreSQL's data directory and
+Azurite's `/data` live under this workspace's `.x4/sandbox/volumes/<service>/data`.
+Removing and recreating containers reattaches those same directories. Ordinary
+stop/start must preserve them; force deletion remains an explicit data-removal
+operation. Existing stacks using image-created anonymous volumes need an
+explicit recovery copy before switching mounts. Do not guess which historical
+volume is authoritative or overwrite a nonempty destination.
+
+`SYNC_SCHEDULE_ENABLED` is a required project environment variable, selected only
+by the backend. The template defaults to `true`; the profile passes both `true`
+and `false` through unchanged and supplies no inline override. Keep it `true`
+to initialize a fresh preview roster automatically. Its read-only readiness command
+requires successful `districts`, `facilities`, `users` and `user-roles`
+checkpoints from `/health`. A fresh database remains unready after the
+facilities-only startup bootstrap. The existing scheduler imports the remaining
+roster; initialization can take one scheduling interval plus the sync duration.
+Setting the project value to `false` disables that scheduled import; a fresh
+preview then needs an operator-triggered sync to satisfy the same readiness check.
+The readiness command never starts a sync. Existing successful checkpoints allow
+restarts without requiring another full import. A later sync failure retains
+that established readiness; investigate freshness separately.
+
+If Control already holds an edited K12 profile, apply the backend and frontend
+selections, remove any inline `SYNC_SCHEDULE_ENABLED` override, set the project
+environment value to `true`, remove inline placeholder CoreLayer inputs, and
+import the updated command health check before the next start. Installing updated
+tools does not replace saved registry edits. Missing directory inputs must fail
+environment validation instead of producing a reachable preview with no users.
 K12 can keep its private dotenv source; editing service selections does not
 move its values into Control or require a Key Vault. The dependency token is
 still present in the selected containers' configuration and prepared files,
@@ -226,11 +252,12 @@ The K12 owner then tests with CoreLayer support:
    the approved test inbox; enabled providers make real service calls.
 4. Confirm unauthorized accounts/tenants are denied. Test session expiry,
    reauthentication and logout against the agreed policy.
-5. Run a roster sync before signing in: bta-api only admits a person whose
-   account a sync brought in, and answers 403 otherwise. Scheduled sync is
-   disabled; start one with `POST /admin/sync` on bta-api with the profile's
-   `SYNC_TRIGGER_SECRET` in `X-Sync-Secret`, and follow it with
-   `GET /admin/sync/<jobId>`. The incident seed does not supply a roster.
+5. Confirm successful district, facility, user and role checkpoints before
+   signing in and test the expected directory identity. BTA only admits a
+   person whose account a sync brought in, and answers 403 otherwise. The
+   incident seed does not supply the CoreLayer roster. Check the project
+   scheduling value and upstream read permissions if initialization is incomplete;
+   use the authenticated recovery operation below when a manual sync is needed.
 6. Record separate results for health, login, API authorization, case opening,
    logout and roster. A healthy API does not prove sign-in.
 
@@ -238,6 +265,14 @@ For authentication failures, CoreLayer and K12 check registration, issuer,
 audience, exchange/CORS policy and permissions. For startup failures, X4 checks
 missing keys, dependency installation and service health. Use real testing
 sign-in, without identity injection or a tester-login bypass.
+
+For an existing empty preview, use BTA's authenticated `POST /admin/sync`
+operation to initialize the roster, then follow `GET /admin/sync/<jobId>` to
+terminal success. Read `X-Sync-Secret` from the preview's private environment;
+never put it in command arguments or logs. This operation uses the existing
+worker, stable external IDs and page transactions. A failed run can retain
+completed pages; inspect its errors before retrying. It does not grant arbitrary
+access. Correct the saved profile as well so the next rebuild initializes itself.
 
 ## Stop or repeat the preview
 
