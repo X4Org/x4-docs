@@ -126,6 +126,11 @@ Neither repository's CI can read the other, so nothing checks that the two
 copies agree. `node scripts/sync-sandbox-inspect-fixtures.ts --check` in X4
 Code compares them using your `gh` login.
 
+The same rule holds the other contracts X4 Code reads: `x4 workspace thread`'s
+JSON, `x4-progress` lines, Control's registry, and the person rule. Their
+goldens, regenerate commands and the rule for changing them are in
+[contract-goldens.md](contract-goldens.md).
+
 ### Where session stacks run
 
 By default `start` runs the stack on the execution model's sandbox worker
