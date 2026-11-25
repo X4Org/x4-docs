@@ -338,8 +338,13 @@ container wiring and the `mastra-testing` bundle) and `sdac`, `k12`, `tap` and
 `handbook` profiles that run each target's `dev:*` script; `sdac` adds the
 widget with links to test districts. These use the shared testing environment
 (`sharedData: true`), so changes are visible to others; X4 never runs
-migrations there. `sdac-isolated-preview` uses fake providers and its own
-database.
+migrations there. `sdac-isolated-preview` uses fake providers and prepares its
+own pgvector database before the runtime starts. On Testbox, X4 installs the
+Mastra checkout’s dependencies from its lockfile before starting the stack.
+Select this profile in X4 Control after the Mastra revision to be previewed
+includes `scripts/dev/start-sdac-isolated-preview.mjs`. Start the first run in a
+new session so PostgreSQL 16 creates a new volume. PostgreSQL 16 cannot use a
+volume from the previous PostgreSQL 17 profile.
 
 A profile may set `sharedData: true` to say its stack uses data shared with
 other people, and a service's `preview.links` lists named pages
@@ -441,9 +446,11 @@ A profile that needs secrets names an env bundle and opts services in:
 profiles:
   sdac-testing:
     extends: sdac-isolated-preview
+    sharedData: true
     envBundle: sdac-test
     services:
       - id: runtime
+        command: bun run dev:sdac
         injectEnvFile: true
         environment:
           HOST: 0.0.0.0
@@ -454,7 +461,8 @@ A service listed without `repo` overrides only the fields it names on the
 parent's service of the same id. `environment` is replaced as a whole, and a
 service's `environment` wins over the env file, so a testing profile restates
 only container settings (host, port, service URLs) and leaves out the parent's
-placeholder credentials.
+placeholder credentials. The ordinary runtime command starts against the
+shared database without initializing it.
 
 The bundle is a dotenv file on the host that runs the stack, at
 `<env dir>/<bundle>.env`: `X4_ENV_DIR`, else `/etc/x4/env` (workers), else
