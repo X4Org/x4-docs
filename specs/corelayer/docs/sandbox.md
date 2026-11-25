@@ -341,10 +341,8 @@ widget with links to test districts. These use the shared testing environment
 migrations there. `sdac-isolated-preview` uses fake providers and prepares its
 own pgvector database before the runtime starts. On Testbox, X4 installs the
 Mastra checkout’s dependencies from its lockfile before starting the stack.
-Select this profile in X4 Control after the Mastra revision to be previewed
-includes `scripts/dev/start-sdac-isolated-preview.mjs`. Start the first run in a
-new session so PostgreSQL 16 creates a new volume. PostgreSQL 16 cannot use a
-volume from the previous PostgreSQL 17 profile.
+The runtime runs `scripts/dev/start-sdac-isolated-preview.mjs`, so the Mastra
+revision being previewed must contain that script.
 
 A profile may set `sharedData: true` to say its stack uses data shared with
 other people, and a service's `preview.links` lists named pages
